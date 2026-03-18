@@ -114,35 +114,93 @@ function prefillTokens() {
 // ── GUMROAD API HELPER ────────────────────────────────
 async function gumroadAPI(path, method = 'GET', body = null) {
   const token = GR.getGumroad();
+  if (!token) throw new Error('Gumroad token not set. Please connect your account first.');
   const url = `https://api.gumroad.com${path}`;
   let params = `access_token=${encodeURIComponent(token)}`;
   if (body) Object.entries(body).forEach(([k,v]) => { if (v !== undefined && v !== null) params += `&${k}=${encodeURIComponent(v)}`; });
   const opts = { method, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
-  if (method === 'GET') { const r = await fetch(`${url}?${params}`, opts); return r.json(); }
-  opts.body = params;
-  const r = await fetch(url, opts);
-  return r.json();
+  try {
+    let r;
+    if (method === 'GET') { r = await fetch(`${url}?${params}`, opts); }
+    else { opts.body = params; r = await fetch(url, opts); }
+    if (r.status === 401) throw new Error('Invalid Gumroad token. Please reconnect your account.');
+    if (r.status === 429) throw new Error('Gumroad rate limit hit. Please wait a moment.');
+    if (!r.ok && r.status >= 500) throw new Error('Gumroad server error. Try again in a moment.');
+    return r.json();
+  } catch(e) {
+    if (e.message.includes('fetch') || e.message.includes('network')) throw new Error('Network error — check your connection.');
+    throw e;
+  }
 }
 
 // ── ANTHROPIC API HELPER ──────────────────────────────
+// Rate limit tracker for Anthropic API
+const _claudeRateLimit = { calls: 0, resetAt: Date.now() + 60000 };
+
 async function claudeAPI(prompt, maxTokens = 1000) {
   const key = GR.getAnthropic();
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-  const d = await r.json();
-  return d.content?.[0]?.text || '';
+  if (!key) throw new Error('Anthropic API key not set. Add it in the setup screen.');
+
+  // Simple client-side rate limit: max 20 calls per minute
+  const now = Date.now();
+  if (now > _claudeRateLimit.resetAt) {
+    _claudeRateLimit.calls = 0;
+    _claudeRateLimit.resetAt = now + 60000;
+  }
+  _claudeRateLimit.calls++;
+  if (_claudeRateLimit.calls > 20) {
+    await new Promise(r => setTimeout(r, 3000)); // back off
+  }
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: maxTokens,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (r.status === 429) throw new Error('Rate limit hit. Please wait a moment and try again.');
+      if (r.status === 401) throw new Error('Invalid Anthropic API key. Check your key and try again.');
+      throw new Error(err.error?.message || 'Claude API error: ' + r.status);
+    }
+
+    const d = await r.json();
+    return d.content?.[0]?.text || '';
+  } catch(e) {
+    if (e.message.includes('fetch')) throw new Error('Network error — check your internet connection.');
+    throw e;
+  }
+}
+
+
+// ── TOKEN GUARD ───────────────────────────────────────
+// Shows a banner if no token is set when visiting a tool page
+function checkTokenOrWarn(requireAnthropic = false) {
+  if (!GR.getGumroad()) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:rgba(255,107,107,0.12);border:1px solid rgba(255,107,107,0.4);border-radius:10px;padding:12px 20px;margin:16px 20px;font-size:12px;font-family:DM Mono,monospace;color:#ff6b6b;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    banner.innerHTML = `<span>⚠️ No Gumroad token detected. <a href="index.html" style="color:#4ecdc4;text-decoration:none;font-weight:700">Connect your account on the Dashboard →</a></span>`;
+    const container = document.querySelector('.container') || document.body;
+    container.insertBefore(banner, container.firstChild);
+  }
+  if (requireAnthropic && !GR.getAnthropic()) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:10px;padding:12px 20px;margin:8px 20px;font-size:12px;font-family:DM Mono,monospace;color:#667eea;';
+    banner.innerHTML = `⚠️ No Anthropic API key set — AI features won't work. Add your key in the tool's setup screen.`;
+    const container = document.querySelector('.container') || document.body;
+    container.insertBefore(banner, container.firstChild);
+  }
 }
 
 // ── EXPORT CSV ────────────────────────────────────────
@@ -281,3 +339,18 @@ function applyTheme(theme) {
     document.body.style.background = '#0a0a0f';
   }
 }
+
+// ── AUTO-CLEAR TOKENS AFTER 8 HOURS ──────────────────
+(function() {
+  const stored = sessionStorage.getItem('gr_token_ts');
+  const now = Date.now();
+  const EIGHT_HOURS = 8 * 60 * 60 * 1000;
+  if (stored && (now - parseInt(stored)) > EIGHT_HOURS) {
+    GR.clear();
+    sessionStorage.removeItem('gr_token_ts');
+    console.log('Tokens auto-cleared after 8 hours for security.');
+  }
+  if (sessionStorage.getItem('gr_token') && !stored) {
+    sessionStorage.setItem('gr_token_ts', now.toString());
+  }
+})();

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src https://fonts.gstatic.com; connect-src https://api.gumroad.com https://api.anthropic.com https://gumroad.com; img-src 'self' data: https: blob:;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sales Chart</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -250,6 +251,7 @@ function exportSalesCSV() {
 Chart.defaults.color = '#6b6b8a';
 Chart.defaults.borderColor = '#2a2a3a';
 injectThemeToggle();
+checkTokenOrWarn(false);
 injectNav('sales-chart'); injectMobileStyles(); prefillTokens();
 </script>
 </body>
