@@ -349,6 +349,12 @@
           <label class="form-label">Gumroad API Token</label>
           <input class="form-input" id="gumroadToken" type="password" placeholder="Your Gumroad access token..." />
         </div>
+      </div>
+      <div class="input-row">
+        <div class="form-group">
+          <label class="form-label">Anthropic API Key (for AI rewriting)</label>
+          <input class="form-input" id="anthropicKey" type="password" placeholder="sk-ant-..." />
+        </div>
         <div class="form-group">
           <label class="form-label">Writing Style</label>
           <select class="form-input" id="writingStyle">
@@ -477,6 +483,8 @@ async function startRewriter() {
   if (!gt) return showToast('Enter your Gumroad token', 'error');
 
   GUMROAD_TOKEN = gt;
+  window._anthropicKey = document.getElementById('anthropicKey').value.trim();
+  if (!window._anthropicKey) return showToast('Enter your Anthropic API key', 'error');
   style = document.getElementById('writingStyle').value;
   rewriteType = document.getElementById('rewriteType').value;
   const filter = document.getElementById('filterType').value;
@@ -590,7 +598,13 @@ Return this exact JSON:
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': window._anthropicKey || '',
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,

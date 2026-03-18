@@ -199,6 +199,10 @@
           <input class="form-input" id="gumroadToken" type="password" placeholder="Your Gumroad access token..." />
         </div>
         <div class="form-group">
+          <label class="form-label">Anthropic API Key (for AI mode)</label>
+          <input class="form-input" id="anthropicKey" type="password" placeholder="sk-ant-..." />
+        </div>
+        <div class="form-group">
           <label class="form-label">Filter Products</label>
           <select class="form-select" id="filterType" onchange="toggleUrlFilter(this.value)">
             <option value="all">All products</option>
@@ -417,6 +421,11 @@ async function start() {
   if (selectedCats.size === 0) return showToast('Select at least one category', 'error');
 
   TOKEN = t;
+  window._anthropicKey = document.getElementById('anthropicKey').value.trim();
+  if (mode === 'ai' && !window._anthropicKey) {
+    showToast('Enter your Anthropic API key for AI mode', 'error');
+    return;
+  }
   document.getElementById('startBtn').disabled = true;
   document.getElementById('startBtn').textContent = 'Loading...';
 
@@ -602,7 +611,13 @@ Reply with ONLY the category name, exactly as written. Nothing else.`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': window._anthropicKey || '',
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 50,
