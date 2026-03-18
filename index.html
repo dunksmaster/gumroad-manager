@@ -325,23 +325,28 @@
     font-size: 32px;
   }
 
-  .product-body { padding: 16px; }
+  .product-body { padding: 18px; }
 
   .product-name {
     font-family: 'Syne', sans-serif;
     font-weight: 700;
-    font-size: 15px;
-    margin-bottom: 6px;
+    font-size: 14px;
+    margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: -0.2px;
+    color: var(--text);
+    line-height: 1.4;
   }
 
   .product-price {
-    color: var(--accent3);
-    font-size: 18px;
+    color: var(--success);
+    font-size: 14px;
     font-weight: 500;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.5px;
   }
 
   .product-meta {
@@ -680,6 +685,9 @@
         <div class="nav-section-label">Actions</div>
         <div class="nav-item" onclick="loadData()">
           <span class="icon">🔄</span> Refresh Data
+        </div>
+        <div class="nav-item" onclick="window.open('rewriter.html','_blank')">
+          <span class="icon">✨</span> AI Rewriter
         </div>
         <div class="nav-item" onclick="disconnect()">
           <span class="icon">🚪</span> Disconnect
