@@ -612,23 +612,7 @@ Description: ${(product.description||'').substring(0, 200)}
 
 Reply with ONLY the category name, exactly as written. Nothing else.`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': window._anthropicKey || '',
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 50,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-  const data = await res.json();
-  const reply = (data.content?.[0]?.text || '').trim();
+  const reply = (await claudeAPI(prompt, 50)).trim();
   return cats.find(c => c.toLowerCase() === reply.toLowerCase()) || cats[0];
 }
 
@@ -776,6 +760,7 @@ async function previewProductFromUrl() {
 
 // Init
 initCategoryPicker();
+injectThemeToggle();
 injectNav('categories');
 injectMobileStyles();
 prefillTokens();

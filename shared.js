@@ -166,3 +166,101 @@ function injectMobileStyles() {
   `;
   document.head.appendChild(style);
 }
+
+// ── CONFIRMATION DIALOG ───────────────────────────────
+function confirmAction(message, onConfirm) {
+  let overlay = document.getElementById('confirm-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'confirm-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML = `
+      <div style="background:#13131a;border:1px solid #2a2a3a;border-radius:14px;padding:28px;max-width:400px;width:100%;text-align:center;">
+        <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
+        <div id="confirm-msg" style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:8px;color:#f0f0f5;"></div>
+        <div style="font-size:11px;color:#6b6b8a;margin-bottom:24px;">This action cannot be undone.</div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button id="confirm-cancel" style="background:transparent;border:1px solid #2a2a3a;color:#f0f0f5;border-radius:8px;padding:10px 20px;font-family:Syne,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">Cancel</button>
+          <button id="confirm-ok" style="background:#ff6b6b;border:none;color:white;border-radius:8px;padding:10px 20px;font-family:Syne,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">Confirm</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('confirm-msg').textContent = message;
+  overlay.style.display = 'flex';
+  document.getElementById('confirm-cancel').onclick = () => { overlay.style.display = 'none'; };
+  document.getElementById('confirm-ok').onclick = () => { overlay.style.display = 'none'; onConfirm(); };
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.style.display = 'none'; };
+}
+
+// ── UNDO MANAGER ─────────────────────────────────────
+const UndoManager = {
+  _stack: [],
+  push(label, undoFn) {
+    this._stack.push({ label, undoFn });
+    this._showBar(label);
+  },
+  _showBar(label) {
+    let bar = document.getElementById('undo-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'undo-bar';
+      bar.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1c1c27;border:1px solid #2a2a3a;border-radius:10px;padding:12px 20px;font-size:12px;font-family:DM Mono,monospace;color:#f0f0f5;z-index:9997;display:flex;align-items:center;gap:14px;transition:all 0.3s;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.4);';
+      document.body.appendChild(bar);
+    }
+    bar.innerHTML = `<span>✅ ${label}</span><button onclick="UndoManager.undo()" style="background:rgba(78,205,196,0.15);border:1px solid rgba(78,205,196,0.3);color:#4ecdc4;border-radius:6px;padding:4px 12px;font-family:Syne,sans-serif;font-weight:700;font-size:11px;cursor:pointer;">↩ Undo</button>`;
+    bar.style.transform = 'translateX(-50%) translateY(0)';
+    if (this._timer) clearTimeout(this._timer);
+    this._timer = setTimeout(() => { bar.style.transform = 'translateX(-50%) translateY(80px)'; }, 6000);
+  },
+  async undo() {
+    const last = this._stack.pop();
+    if (!last) return;
+    await last.undoFn();
+    showSharedToast('↩ Undone: ' + last.label, 'success');
+    const bar = document.getElementById('undo-bar');
+    if (bar) bar.style.transform = 'translateX(-50%) translateY(80px)';
+  }
+};
+
+// ── DARK / LIGHT MODE TOGGLE ──────────────────────────
+function injectThemeToggle() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  applyTheme(saved);
+
+  const btn = document.createElement('button');
+  btn.id = 'theme-toggle';
+  btn.style.cssText = 'background:none;border:1px solid #2a2a3a;border-radius:8px;padding:6px 12px;color:#6b6b8a;cursor:pointer;font-size:14px;transition:all 0.2s;margin-left:12px;';
+  btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+  btn.title = 'Toggle light/dark mode';
+  btn.onclick = () => {
+    const current = localStorage.getItem('theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+    btn.textContent = next === 'dark' ? '☀️' : '🌙';
+  };
+
+  const header = document.querySelector('header');
+  if (header) header.appendChild(btn);
+}
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.style.setProperty('--bg', '#f8f9fa');
+    document.documentElement.style.setProperty('--surface', '#ffffff');
+    document.documentElement.style.setProperty('--surface2', '#f1f3f5');
+    document.documentElement.style.setProperty('--border', '#dee2e6');
+    document.documentElement.style.setProperty('--text', '#1a1a2e');
+    document.documentElement.style.setProperty('--muted', '#868e96');
+    document.body.style.background = '#f8f9fa';
+  } else {
+    document.documentElement.style.setProperty('--bg', '#0a0a0f');
+    document.documentElement.style.setProperty('--surface', '#13131a');
+    document.documentElement.style.setProperty('--surface2', '#1c1c27');
+    document.documentElement.style.setProperty('--border', '#2a2a3a');
+    document.documentElement.style.setProperty('--text', '#f0f0f5');
+    document.documentElement.style.setProperty('--muted', '#6b6b8a');
+    document.body.style.background = '#0a0a0f';
+  }
+}

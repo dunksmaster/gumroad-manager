@@ -120,9 +120,10 @@ async function findDead() {
     document.getElementById('deadTable').innerHTML = deadProducts.map((p,i) => {
       const sales = parseInt(p.sales_count||0);
       const badge = sales === 0 ? '<span class="badge badge-dead">💀 Zero sales</span>' : '<span class="badge badge-slow">🐌 Very slow</span>';
+      const thumb = p.thumbnail_url ? `<img src="${p.thumbnail_url}" style="width:34px;height:34px;object-fit:cover;border-radius:6px;margin-right:8px;vertical-align:middle;" />` : '<span style="display:inline-block;width:34px;height:34px;background:var(--surface2);border-radius:6px;margin-right:8px;vertical-align:middle;text-align:center;line-height:34px;font-size:14px;">🛍️</span>';
       return `<tr>
         <td><input type="checkbox" class="check dead-check" data-idx="${i}" /></td>
-        <td style="max-width:300px"><div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div style="font-size:10px;color:var(--muted)">${p.published?'Published':'Unpublished'}</div></td>
+        <td style="max-width:300px"><div style="display:flex;align-items:center">${thumb}<div><div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div style="font-size:10px;color:var(--muted)">${p.published?'Published':'Unpublished'}</div></div></div></td>
         <td style="color:var(--danger)">${sales}</td>
         <td>${badge}</td>
         <td><div style="display:flex;gap:6px">
@@ -144,16 +145,23 @@ async function unpublishOne(id, btn) {
 async function bulkUnpublish() {
   const checked = [...document.querySelectorAll('.dead-check:checked')].map(c => parseInt(c.dataset.idx));
   if (!checked.length) return showSharedToast('Select products first', 'error');
+  confirmAction(`Unpublish ${checked.length} product${checked.length>1?'s':''}?`, () => _doBulkUnpublish(checked));
+}
+async function _doBulkUnpublish(checked) {
   document.getElementById('bulkStatus').textContent = `Unpublishing ${checked.length} products...`;
-  let done = 0;
+  let done = 0; const unpublished = [];
   for (const idx of checked) {
     const p = deadProducts[idx];
     const res = await gumroadAPI(`/v2/products/${p.id}/disable`, 'PUT');
-    if (res.success) done++;
+    if (res.success) { done++; unpublished.push(p.id); }
     await new Promise(r => setTimeout(r, 300));
   }
   document.getElementById('bulkStatus').textContent = `✅ Unpublished ${done} of ${checked.length} products`;
   showSharedToast(`Unpublished ${done} products`, 'success');
+  UndoManager.push(`Unpublished ${done} products`, async () => {
+    for (const id of unpublished) { await gumroadAPI(`/v2/products/${id}/enable`,'PUT'); await new Promise(r=>setTimeout(r,300)); }
+    showSharedToast('Re-published!','success');
+  });
 }
 
 function selectAll() { document.querySelectorAll('.dead-check').forEach(c => c.checked = true); }
@@ -163,6 +171,7 @@ function exportDeadCSV() {
   exportCSV(deadProducts.map(p => [p.name, p.sales_count||0, p.price?(p.price/100).toFixed(2):'Free', p.published?'Yes':'No', p.short_url||'']),
     ['Name','Sales','Price','Published','URL'], 'dead-products.csv');
 }
+injectThemeToggle();
 injectNav('dead-products'); injectMobileStyles(); prefillTokens();
 </script>
 </body>

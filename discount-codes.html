@@ -137,13 +137,15 @@ async function loadForCodes() {
   const token = document.getElementById('gumroadToken').value.trim();
   if (!token) return showSharedToast('Enter your token', 'error');
   GR.setGumroad(token);
+  try {
   const res = await gumroadAPI('/v2/products');
-  if (!res.success) return showSharedToast('Failed to load', 'error');
+  if (!res.success) throw new Error('Failed to load products');
   codeProducts = res.products.filter(p => p.published && p.price > 0);
   document.getElementById('setup').style.display = 'none';
   document.getElementById('mainContent').style.display = 'block';
   document.getElementById('hStatus').textContent = `${codeProducts.length} paid products`;
   renderCodeProducts(codeProducts);
+  } catch(e) { showSharedToast('Error: ' + e.message, 'error'); }
 }
 
 function renderCodeProducts(prods) {
@@ -251,6 +253,7 @@ function exportCodesCSV() {
 }
 
 updatePreview();
+injectThemeToggle();
 injectNav('discount-codes'); injectMobileStyles(); prefillTokens();
 </script>
 </body>

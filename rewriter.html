@@ -599,24 +599,7 @@ Current description: ${product.description || '(no description)'}
 Return this exact JSON:
 {"title": "new title here", "description": "new description here"}`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': window._anthropicKey || '',
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-
-  const data = await response.json();
-  const text = data.content?.[0]?.text || '{}';
+  const text = await claudeAPI(prompt, 1000);
 
   try {
     const clean = text.replace(/```json|```/g, '').trim();
@@ -747,6 +730,7 @@ function updateProgress(text, pct) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+injectThemeToggle();
 injectNav('rewriter');
 injectMobileStyles();
 prefillTokens();

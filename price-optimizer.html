@@ -114,6 +114,7 @@ Reply ONLY as JSON: {"action":"convert_to_paid|raise_awareness|keep_free","sugge
     document.getElementById('hStatus').textContent = `${done} products analyzed`;
   } catch(e) { document.getElementById('recommendations').innerHTML = `<div style="color:var(--danger);padding:20px">Error: ${e.message}</div>`; }
 }
+injectThemeToggle();
 injectNav('price-optimizer'); injectMobileStyles(); prefillTokens();
 </script>
 </body>

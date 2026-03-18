@@ -100,11 +100,13 @@ async function loadProducts() {
   document.getElementById('setup').style.display = 'none';
   document.getElementById('results').style.display = 'block';
   document.getElementById('prodTable').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--muted)">Loading...</td></tr>';
+  try {
   const res = await gumroadAPI('/v2/products');
   if (!res.success) return showSharedToast('Failed to load', 'error');
   products = res.products;
   document.getElementById('hStatus').textContent = `${products.length} products`;
   updateStats(); renderTable(products);
+  } catch(e) { showSharedToast('Error: ' + e.message, 'error'); document.getElementById('setup').style.display='block'; document.getElementById('results').style.display='none'; }
 }
 
 function updateStats() {
@@ -119,9 +121,10 @@ function renderTable(prods) {
   document.getElementById('prodTable').innerHTML = prods.map((p,i) => {
     const price = p.price ? '$' + (p.price/100).toFixed(2) : 'Free';
     const realIdx = products.indexOf(p);
+    const thumb = p.thumbnail_url ? `<img src="${p.thumbnail_url}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;margin-right:10px;vertical-align:middle;" />` : '<span style="display:inline-block;width:36px;height:36px;background:var(--surface2);border-radius:6px;margin-right:10px;vertical-align:middle;text-align:center;line-height:36px;font-size:16px;">🛍️</span>';
     return `<tr>
       <td><input type="checkbox" class="check prod-check" data-idx="${realIdx}" /></td>
-      <td style="max-width:320px"><div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div></td>
+      <td style="max-width:320px"><div style="display:flex;align-items:center">${thumb}<div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div></div></td>
       <td style="color:var(--yellow)">${price}</td>
       <td style="color:var(--muted)">${p.sales_count||0}</td>
       <td>
@@ -144,6 +147,10 @@ async function toggleOne(id, cb, idx) {
 async function bulkAction(action) {
   const checked = [...document.querySelectorAll('.prod-check:checked')].map(c => parseInt(c.dataset.idx));
   if (!checked.length) return showSharedToast('Select products first', 'error');
+  const label = action === 'publish' ? 'Publish' : 'Unpublish';
+  confirmAction(`${label} ${checked.length} product${checked.length>1?'s':''}?`, () => _doBulkAction(action, checked));
+}
+async function _doBulkAction(action, checked) {
   document.getElementById('statusBar').textContent = `Processing ${checked.length} products...`;
   let done = 0;
   for (const idx of checked) {
@@ -156,6 +163,8 @@ async function bulkAction(action) {
   updateStats(); renderTable(products);
   document.getElementById('statusBar').textContent = `✅ ${action === 'publish' ? 'Published' : 'Unpublished'} ${done} products`;
   showSharedToast(`Done! ${done} products updated`, 'success');
+  const reverseAction = action === 'publish' ? 'unpublish' : 'publish';
+  UndoManager.push(`${action === 'publish' ? 'Published' : 'Unpublished'} ${done} products`, () => _doBulkAction(reverseAction, checked));
 }
 
 function filterRows(q) { renderTable(products.filter(p => p.name.toLowerCase().includes(q.toLowerCase()))); }
@@ -167,6 +176,7 @@ function filterStatus(s) {
 function selectAll() { document.querySelectorAll('.prod-check').forEach(c => c.checked = true); }
 function deselectAll() { document.querySelectorAll('.prod-check').forEach(c => c.checked = false); }
 function toggleAll(cb) { document.querySelectorAll('.prod-check').forEach(c => c.checked = cb.checked); }
+injectThemeToggle();
 injectNav('bulk-publish'); injectMobileStyles(); prefillTokens();
 </script>
 </body>

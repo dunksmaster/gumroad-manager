@@ -78,7 +78,8 @@
       <div class="stat-card"><div class="stat-label">Avg Sale Value</div><div class="stat-value yellow" id="sAvg">$0</div></div>
       <div class="stat-card"><div class="stat-label">Best Day</div><div class="stat-value green" id="sBest">—</div></div>
     </div>
-    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+      <input class="form-input" id="productFilter" placeholder="🔍 Filter by product..." oninput="applyProductFilter(this.value)" style="max-width:220px;padding:8px 12px;font-size:11px;" />
       <button class="btn btn-outline btn-sm" onclick="setGrouping('day')">By Day</button>
       <button class="btn btn-outline btn-sm" onclick="setGrouping('week')">By Week</button>
       <button class="btn btn-outline btn-sm" onclick="setGrouping('month')">By Month</button>
@@ -100,6 +101,7 @@
 </div>
 <script>
 let allSales = [];
+let filteredSales = [];
 let grouping = 'day';
 let charts = {};
 
@@ -126,6 +128,7 @@ async function loadSalesData() {
     } while (pageKey);
 
     allSales = sales;
+    filteredSales = sales;
     document.getElementById('loading').style.display = 'none';
     document.getElementById('results').style.display = 'block';
     document.getElementById('hStatus').textContent = `${sales.length} sales loaded`;
@@ -138,7 +141,7 @@ async function loadSalesData() {
 }
 
 function renderAll() {
-  const paid = allSales.filter(s => !s.refunded && s.price > 0);
+  const paid = (filteredSales||allSales).filter(s => !s.refunded && s.price > 0);
   const revenue = paid.reduce((a,s) => a + s.price, 0) / 100;
   const avg = paid.length ? revenue / paid.length : 0;
 
@@ -170,6 +173,11 @@ function groupSales(g) {
   return groups;
 }
 
+function applyProductFilter(q) {
+  if (!q) { filteredSales = allSales; }
+  else { filteredSales = allSales.filter(s => (s.product_name||'').toLowerCase().includes(q.toLowerCase())); }
+  renderAll();
+}
 function setGrouping(g) { grouping = g; renderCharts(); }
 
 function renderCharts() {
@@ -240,6 +248,7 @@ function exportSalesCSV() {
 
 Chart.defaults.color = '#6b6b8a';
 Chart.defaults.borderColor = '#2a2a3a';
+injectThemeToggle();
 injectNav('sales-chart'); injectMobileStyles(); prefillTokens();
 </script>
 </body>

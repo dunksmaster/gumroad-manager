@@ -981,6 +981,7 @@ function renderProducts(products) {
           <a href="${p.short_url}" target="_blank" style="text-decoration:none;">
             <button class="btn btn-outline btn-sm">🔗 View</button>
           </a>
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();copyLink('${p.short_url}')" title="Copy link">📋</button>
         </div>
       </div>
     </div>`;
@@ -1145,6 +1146,11 @@ function showPage(name) {
 }
 
 // ── TOAST ─────────────────────────────────────────────
+async function copyLink(url) {
+  try { await navigator.clipboard.writeText(url); showToast('Link copied! 📋', 'success'); }
+  catch(e) { showToast('Could not copy', 'error'); }
+}
+
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -1158,6 +1164,7 @@ if (saved) {
   document.getElementById('tokenInput').value = saved;
   connect();
 }
+injectThemeToggle();
 injectNav('dashboard');
 injectMobileStyles();
 
