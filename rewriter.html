@@ -327,6 +327,7 @@
   }
   .current-product .label { color: var(--purple); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
 </style>
+<script src="shared.js"></script>
 </head>
 <body>
 <div class="app">
@@ -484,6 +485,8 @@ async function startRewriter() {
 
   GUMROAD_TOKEN = gt;
   window._anthropicKey = document.getElementById('anthropicKey').value.trim();
+  GR.setGumroad(gt);
+  if (window._anthropicKey) GR.setAnthropic(window._anthropicKey);
   if (!window._anthropicKey) return showToast('Enter your Anthropic API key', 'error');
   style = document.getElementById('writingStyle').value;
   rewriteType = document.getElementById('rewriteType').value;
@@ -743,6 +746,10 @@ function updateProgress(text, pct) {
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+injectNav('rewriter');
+injectMobileStyles();
+prefillTokens();
 
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');

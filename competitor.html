@@ -190,6 +190,7 @@
   .product-row-name { font-size: 12px; color: var(--text); max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .product-row-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
 </style>
+<script src="shared.js"></script>
 </head>
 <body>
 
@@ -357,7 +358,8 @@
       </table>
     </div>
 
-    <div style="text-align:center;padding:20px 0">
+    <div style="text-align:center;padding:20px 0;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="exportCompetitorCSV()">📥 Export to CSV</button>
       <button class="btn btn-outline" onclick="resetAll()">🔄 Analyze Another Competitor</button>
     </div>
 
@@ -376,6 +378,8 @@ let anthropicKey = '';
 async function analyze() {
   myToken = document.getElementById('myToken').value.trim();
   anthropicKey = document.getElementById('anthropicKey').value.trim();
+  GR.setGumroad(myToken);
+  if (anthropicKey) GR.setAnthropic(anthropicKey);
   const compUrl = document.getElementById('competitorUrl').value.trim();
 
   if (!myToken) return showToast('Enter your Gumroad token', 'error');
@@ -432,23 +436,53 @@ function extractUsername(url) {
 }
 
 async function fetchCompetitorProducts(username) {
-  // Use Gumroad's public discover endpoint
-  try {
-    const url = `https://gumroad.com/${username}`;
-    // Try via public API - fetch their profile page and parse product data
-    const apiUrl = `https://api.gumroad.com/v2/users/${username}/products`;
-    const r = await fetch(`${apiUrl}?access_token=${encodeURIComponent(myToken)}`);
-    const d = await r.json();
-    if (d.success && d.products) return d.products;
-  } catch(e) {}
+  // Try Gumroad's discover API with creator filter
+  const endpoints = [
+    `https://api.gumroad.com/v2/products?access_token=${encodeURIComponent(myToken)}&creator_url=${encodeURIComponent(username)}`,
+    `https://gumroad.com/discover.json?query=${encodeURIComponent(username)}&from=0&count=48`,
+    `https://api.gumroad.com/v1/products?user=${encodeURIComponent(username)}`,
+  ];
 
-  // Fallback: search Gumroad discover
-  try {
-    const r = await fetch(`https://api.gumroad.com/v2/products?access_token=${encodeURIComponent(myToken)}&user_id=${username}`);
-    const d = await r.json();
-    if (d.success) return d.products || [];
-  } catch(e) {}
+  for (const url of endpoints) {
+    try {
+      const r = await fetch(url);
+      const d = await r.json();
+      if (d.products && d.products.length) return d.products;
+      if (d.results && d.results.length) return d.results.map(p => ({
+        name: p.name || p.title || 'Unknown',
+        price: p.price_cents || (p.price ? p.price * 100 : 0),
+        tags: p.tags || [],
+        published: true,
+        short_url: p.short_url || p.url || '',
+        description: p.description || '',
+      }));
+    } catch(e) {}
+  }
 
+  // Use AI to analyze based on username only if no products found
+  return await aiEstimateCompetitor(username);
+}
+
+async function aiEstimateCompetitor(username) {
+  // If API fails, use AI to research competitor by name
+  setLoading('Using AI to research competitor...', 75);
+  if (!anthropicKey) return [];
+  
+  try {
+    const prompt = `You are researching a Gumroad seller with username: "${username}". 
+Based on their username, generate a realistic list of 8-12 products they likely sell on Gumroad.
+Return ONLY valid JSON array, no markdown:
+[{"name": "product name", "price": 0, "tags": ["tag1","tag2"], "published": true, "description": "brief description"}]
+Price is in cents (0 = free, 999 = $9.99). Make realistic products based on the username niche.`;
+    
+    const text = await claudeAPI(prompt, 800);
+    const clean = text.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    const products = JSON.parse(clean);
+    if (Array.isArray(products)) {
+      showSharedToast('⚠️ Could not access competitor API — showing AI-estimated products', 'warn');
+      return products;
+    }
+  } catch(e) {}
   return [];
 }
 
@@ -613,6 +647,17 @@ function setLoading(title, pct) {
   document.getElementById('loadingBar').style.width = pct + '%';
 }
 
+function exportCompetitorCSV() {
+  if (!themProducts.length) return showToast('No data to export', 'error');
+  const username = document.getElementById('themName').textContent;
+  exportCSV(
+    themProducts.map((p,i) => [i+1, p.name, p.price ? '$'+(p.price/100).toFixed(2) : 'Free', (p.tags||[]).join(';'), p.published ? 'Yes' : 'No']),
+    ['#','Product Name','Price','Tags','Published'],
+    `competitor-${username}-${new Date().toISOString().split('T')[0]}.csv`
+  );
+  showToast('Exported!', 'success');
+}
+
 function resetAll() {
   myProducts = []; themProducts = [];
   document.getElementById('setup-screen').style.display = 'block';
@@ -621,6 +666,10 @@ function resetAll() {
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+injectNav('competitor');
+injectMobileStyles();
+prefillTokens();
 
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');

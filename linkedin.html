@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkedIn Post Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="shared.js"></script>
+<style>
+  :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#0077b5;--accent2:#4ecdc4;--text:#f0f0f5;--muted:#6b6b8a;--success:#51cf66;--danger:#ff6b6b;--yellow:#ffe66d;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}.logo span{color:#0077b5;}
+  .container{max-width:1000px;margin:0 auto;padding:28px 20px;}
+  .layout{display:grid;grid-template-columns:340px 1fr;gap:20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px;}
+  .card h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:8px;}
+  .card p{color:var(--muted);font-size:11px;margin-bottom:20px;line-height:1.6;}
+  .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .form-input,.form-select,.form-textarea{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;transition:border-color 0.2s;width:100%;}
+  .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:#0077b5;}
+  .form-textarea{resize:vertical;min-height:80px;line-height:1.6;}
+  .btn{background:#0077b5;color:white;border:none;border-radius:10px;padding:11px 20px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all 0.2s;width:100%;}
+  .btn:hover{opacity:0.85;transform:translateY(-1px);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);width:auto;}
+  .btn-outline:hover{border-color:#0077b5;color:#0077b5;background:transparent;}
+  .btn-sm{padding:7px 14px;font-size:11px;border-radius:7px;width:auto;}
+  .btn-success{background:var(--success);color:#0a0a0f;width:auto;}
+  .product-item{padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:all 0.15s;}
+  .product-item:hover{border-color:#0077b5;background:rgba(0,119,181,0.06);}
+  .product-item.selected{border-color:#0077b5;background:rgba(0,119,181,0.1);}
+  .product-item-name{font-size:12px;font-family:'Syne',sans-serif;font-weight:600;margin-bottom:3px;}
+  .product-item-meta{font-size:10px;color:var(--muted);}
+  .post-output{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;font-size:13px;line-height:1.8;white-space:pre-wrap;min-height:200px;font-family:'DM Mono',monospace;}
+  .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:#0077b5;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .char-count{font-size:10px;color:var(--muted);text-align:right;margin-top:6px;}
+  .style-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .style-pill{padding:5px 12px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-size:11px;transition:all 0.15s;}
+  .style-pill:hover,.style-pill.active{border-color:#0077b5;color:#0077b5;background:rgba(0,119,181,0.1);}
+</style>
+</head>
+<body>
+<header><div class="logo">LinkedIn <span>Post Generator</span></div><div style="font-size:11px;color:var(--muted)" id="hStatus">Not connected</div></header>
+<div class="container">
+  <div id="setup" class="card" style="max-width:500px;margin:0 auto">
+    <h2>💼 LinkedIn Post Generator</h2>
+    <p>Connect to load your products, then generate ready-to-post LinkedIn content for any product in seconds.</p>
+    <div class="form-group"><label class="form-label">Gumroad API Token</label><input class="form-input" id="gumroadToken" type="password" /></div>
+    <div class="form-group"><label class="form-label">Anthropic API Key</label><input class="form-input" id="anthropicKey" type="password" placeholder="sk-ant-..." /></div>
+    <div class="form-group"><label class="form-label">Your Name / Brand</label><input class="form-input" id="myBrand" placeholder="e.g. DuaCrypto" /></div>
+    <button class="btn" onclick="loadForLinkedIn()">💼 Load Products</button>
+  </div>
+  <div id="mainLayout" style="display:none" class="layout">
+    <!-- LEFT: product list -->
+    <div>
+      <div class="card" style="margin-bottom:0">
+        <h2>📦 Your Products</h2>
+        <input class="form-input" style="margin-bottom:12px" placeholder="🔍 Search..." oninput="filterLI(this.value)" id="liSearch" />
+        <div id="productList" style="max-height:520px;overflow-y:auto"></div>
+      </div>
+    </div>
+    <!-- RIGHT: generator -->
+    <div>
+      <div class="card">
+        <div id="selectedProduct" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;margin-bottom:4px;color:var(--accent2)">← Select a product</div>
+        <div id="selectedMeta" style="font-size:11px;color:var(--muted);margin-bottom:16px"></div>
+
+        <div class="form-group">
+          <label class="form-label">Post Style</label>
+          <div class="style-pills">
+            <div class="style-pill active" onclick="setStyle(this,'story')">📖 Story</div>
+            <div class="style-pill" onclick="setStyle(this,'value')">💡 Value bomb</div>
+            <div class="style-pill" onclick="setStyle(this,'promo')">📣 Direct promo</div>
+            <div class="style-pill" onclick="setStyle(this,'question')">❓ Question hook</div>
+            <div class="style-pill" onclick="setStyle(this,'list')">📋 List post</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tone</label>
+          <select class="form-select" id="postTone">
+            <option value="professional">Professional</option>
+            <option value="casual">Casual & friendly</option>
+            <option value="bold">Bold & direct</option>
+            <option value="educational">Educational</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Extra context (optional)</label>
+          <textarea class="form-textarea" id="extraContext" placeholder="Any specific angle, personal story, or talking points to include..."></textarea>
+        </div>
+
+        <button class="btn" id="generateBtn" onclick="generatePost()" disabled>✨ Generate LinkedIn Post</button>
+      </div>
+
+      <div id="outputCard" style="display:none" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700">Generated Post</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="generatePost()">🔄 Regenerate</button>
+            <button class="btn btn-success btn-sm" onclick="copyPost()">📋 Copy</button>
+          </div>
+        </div>
+        <div class="post-output" id="postOutput"></div>
+        <div class="char-count" id="charCount"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let liProducts = [];
+let selectedProduct = null;
+let postStyle = 'story';
+
+async function loadForLinkedIn() {
+  const token = document.getElementById('gumroadToken').value.trim();
+  const antKey = document.getElementById('anthropicKey').value.trim();
+  if (!token) return showSharedToast('Enter your token', 'error');
+  if (!antKey) return showSharedToast('Anthropic API key required for post generation', 'error');
+  GR.setGumroad(token); GR.setAnthropic(antKey);
+  const res = await gumroadAPI('/v2/products');
+  if (!res.success) return showSharedToast('Failed to load products', 'error');
+  liProducts = res.products.filter(p => p.published);
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('mainLayout').style.display = 'grid';
+  document.getElementById('hStatus').textContent = `${liProducts.length} products loaded`;
+  renderProductList(liProducts);
+}
+
+function renderProductList(prods) {
+  document.getElementById('productList').innerHTML = prods.map(p => {
+    const price = p.price ? '$' + (p.price/100).toFixed(2) : 'Free';
+    return `<div class="product-item" onclick="selectProduct('${p.id}')">
+      <div class="product-item-name">${p.name.substring(0,50)}${p.name.length>50?'...':''}</div>
+      <div class="product-item-meta">${price} · ${p.sales_count||0} sales</div>
+    </div>`;
+  }).join('');
+}
+
+function filterLI(q) { renderProductList(liProducts.filter(p => p.name.toLowerCase().includes(q.toLowerCase()))); }
+
+function selectProduct(id) {
+  selectedProduct = liProducts.find(p => p.id === id);
+  document.querySelectorAll('.product-item').forEach(el => el.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.getElementById('selectedProduct').textContent = selectedProduct.name;
+  document.getElementById('selectedMeta').textContent = (selectedProduct.price ? '$'+(selectedProduct.price/100).toFixed(2) : 'Free') + ' · ' + (selectedProduct.sales_count||0) + ' sales · ' + (selectedProduct.short_url||'');
+  document.getElementById('generateBtn').disabled = false;
+}
+
+function setStyle(el, style) {
+  document.querySelectorAll('.style-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  postStyle = style;
+}
+
+async function generatePost() {
+  if (!selectedProduct) return showSharedToast('Select a product first', 'error');
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Generating...';
+  document.getElementById('outputCard').style.display = 'block';
+  document.getElementById('postOutput').textContent = 'Writing your post...';
+  const brand = document.getElementById('myBrand').value || 'my brand';
+  const tone = document.getElementById('postTone').value;
+  const extra = document.getElementById('extraContext').value;
+  const price = selectedProduct.price ? '$'+(selectedProduct.price/100).toFixed(2) : 'free';
+  const styleGuides = {
+    story: 'Start with a personal story or observation. Build to the product naturally. End with a soft CTA.',
+    value: 'Lead with a value insight or tip related to the product topic. Mention the product as the tool that helps.',
+    promo: 'Direct promotional post. Lead with the benefit, explain what they get, clear CTA.',
+    question: 'Start with a provocative question. Build curiosity. Reveal the answer ties to your product.',
+    list: 'Use a numbered or bulleted list of insights/tips. Product as the bonus or CTA at the end.'
+  };
+  const prompt = `Write a LinkedIn post promoting this Gumroad product.
+
+Product: "${selectedProduct.name}"
+Price: ${price}
+Link: ${selectedProduct.short_url||'[product link]'}
+Brand: ${brand}
+Description: ${(selectedProduct.description||'').substring(0,300)}
+Style: ${styleGuides[postStyle]}
+Tone: ${tone}
+${extra ? 'Extra context: ' + extra : ''}
+
+Rules:
+- 150-300 words ideal
+- No hashtag spam (max 3-4 relevant hashtags at end)
+- Sound like a real person, not a bot
+- Include the product link naturally
+- Make it shareable and engaging
+
+Write ONLY the post text, nothing else.`;
+  try {
+    const text = await claudeAPI(prompt, 600);
+    document.getElementById('postOutput').textContent = text;
+    document.getElementById('charCount').textContent = text.length + ' characters · ' + text.split(/\s+/).length + ' words';
+  } catch(e) {
+    document.getElementById('postOutput').textContent = 'Error generating post. Check your Anthropic API key.';
+  }
+  btn.disabled = false; btn.textContent = '✨ Generate LinkedIn Post';
+}
+
+async function copyPost() {
+  const text = document.getElementById('postOutput').textContent;
+  await navigator.clipboard.writeText(text);
+  showSharedToast('Copied to clipboard! 📋', 'success');
+}
+
+injectNav('linkedin'); injectMobileStyles(); prefillTokens();
+</script>
+</body>
+</html>

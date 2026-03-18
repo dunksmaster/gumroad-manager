@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Chart</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="shared.js"></script>
+<style>
+  :root { --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#ff6b6b;--accent2:#4ecdc4;--accent3:#ffe66d;--purple:#667eea;--text:#f0f0f5;--muted:#6b6b8a;--success:#51cf66; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}.logo span{color:var(--accent2);}
+  .container{max-width:1100px;margin:0 auto;padding:28px 20px;}
+  .setup-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;margin-bottom:20px;}
+  .setup-card h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;}
+  .setup-card p{color:var(--muted);font-size:12px;margin-bottom:24px;line-height:1.6;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .form-group{display:flex;flex-direction:column;gap:8px;}
+  .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .form-input,.form-select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color 0.2s;width:100%;}
+  .form-input:focus,.form-select:focus{border-color:var(--accent2);}
+  .btn{background:var(--accent2);color:#0a0a0f;border:none;border-radius:10px;padding:12px 24px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
+  .btn:hover{opacity:0.85;transform:translateY(-1px);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-outline:hover{border-color:var(--accent2);color:var(--accent2);background:transparent;}
+  .btn-sm{padding:7px 14px;font-size:11px;border-radius:7px;}
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .stat-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .stat-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;}
+  .stat-value.green{color:var(--success);}.stat-value.teal{color:var(--accent2);}.stat-value.yellow{color:var(--accent3);}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;}
+  .chart-card h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
+  canvas{max-height:280px;}
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px;}
+  .table-header{padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .table-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;padding:10px 16px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);}
+  td{padding:11px 16px;font-size:12px;border-bottom:1px solid rgba(42,42,58,0.4);}
+  tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(28,28,39,0.6);}
+  #results{display:none;}
+  .loading{text-align:center;padding:60px;color:var(--muted);}
+  .spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;margin-bottom:12px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<header><div class="logo">Sales <span>Chart</span></div><div style="font-size:11px;color:var(--muted)" id="hStatus">Not connected</div></header>
+<div class="container">
+  <div id="setup">
+    <div class="setup-card">
+      <h2>📊 Sales Revenue Chart</h2>
+      <p>Visualize your Gumroad sales over time — revenue by day, week or month, top products, and sales trends.</p>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Gumroad API Token</label><input class="form-input" id="gumroadToken" type="password" placeholder="Your access token..." /></div>
+        <div class="form-group"><label class="form-label">Date Range</label>
+          <select class="form-select" id="dateRange">
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="180">Last 6 months</option>
+            <option value="365">Last year</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" id="loadBtn" onclick="loadSalesData()">📊 Load Sales Data</button>
+    </div>
+  </div>
+  <div id="loading" style="display:none" class="loading"><div class="spinner"></div><br>Loading sales data...</div>
+  <div id="results">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value green" id="sRevenue">$0</div></div>
+      <div class="stat-card"><div class="stat-label">Total Sales</div><div class="stat-value teal" id="sSales">0</div></div>
+      <div class="stat-card"><div class="stat-label">Avg Sale Value</div><div class="stat-value yellow" id="sAvg">$0</div></div>
+      <div class="stat-card"><div class="stat-label">Best Day</div><div class="stat-value green" id="sBest">—</div></div>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="setGrouping('day')">By Day</button>
+      <button class="btn btn-outline btn-sm" onclick="setGrouping('week')">By Week</button>
+      <button class="btn btn-outline btn-sm" onclick="setGrouping('month')">By Month</button>
+      <button class="btn btn-outline btn-sm" onclick="exportSalesCSV()">📥 Export CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('results').style.display='none';document.getElementById('setup').style.display='block'">🔄 Reload</button>
+    </div>
+    <div class="chart-card"><h3>💰 Revenue Over Time</h3><canvas id="revenueChart"></canvas></div>
+    <div class="chart-card"><h3>📦 Sales Count Over Time</h3><canvas id="salesChart"></canvas></div>
+    <div class="chart-card" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div><h3>🏆 Top Products by Revenue</h3><canvas id="topRevenueChart"></canvas></div>
+      <div><h3>📈 Top Products by Sales Count</h3><canvas id="topSalesChart"></canvas></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><div class="table-title">All Sales</div><div style="font-size:11px;color:var(--muted)" id="salesCount"></div></div>
+      <table><thead><tr><th>Date</th><th>Product</th><th>Amount</th><th>Buyer</th><th>Status</th></tr></thead>
+      <tbody id="salesTable"></tbody></table>
+    </div>
+  </div>
+</div>
+<script>
+let allSales = [];
+let grouping = 'day';
+let charts = {};
+
+async function loadSalesData() {
+  const token = document.getElementById('gumroadToken').value.trim();
+  if (!token) return showSharedToast('Enter your token', 'error');
+  GR.setGumroad(token);
+  const days = parseInt(document.getElementById('dateRange').value);
+  const after = new Date(); after.setDate(after.getDate() - days);
+  const afterStr = after.toISOString().split('T')[0];
+
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+
+  try {
+    let sales = [], pageKey = null;
+    do {
+      let url = `https://api.gumroad.com/v2/sales?access_token=${encodeURIComponent(token)}&after=${afterStr}&page_key=${pageKey||''}`;
+      const r = await fetch(url);
+      const d = await r.json();
+      if (!d.success) break;
+      sales = sales.concat(d.sales || []);
+      pageKey = d.next_page_key || null;
+    } while (pageKey);
+
+    allSales = sales;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('hStatus').textContent = `${sales.length} sales loaded`;
+    renderAll();
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('setup').style.display = 'block';
+    showSharedToast('Error: ' + e.message, 'error');
+  }
+}
+
+function renderAll() {
+  const paid = allSales.filter(s => !s.refunded && s.price > 0);
+  const revenue = paid.reduce((a,s) => a + s.price, 0) / 100;
+  const avg = paid.length ? revenue / paid.length : 0;
+
+  document.getElementById('sRevenue').textContent = '$' + revenue.toFixed(2);
+  document.getElementById('sSales').textContent = paid.length;
+  document.getElementById('sAvg').textContent = '$' + avg.toFixed(2);
+
+  // Best day
+  const byDay = groupSales('day');
+  const bestDay = Object.entries(byDay).sort((a,b) => b[1].rev - a[1].rev)[0];
+  document.getElementById('sBest').textContent = bestDay ? '$' + bestDay[1].rev.toFixed(0) : '—';
+
+  renderCharts();
+  renderTable();
+}
+
+function groupSales(g) {
+  const groups = {};
+  allSales.filter(s => !s.refunded && s.price > 0).forEach(s => {
+    const d = new Date(s.created_at);
+    let key;
+    if (g === 'day') key = d.toISOString().split('T')[0];
+    else if (g === 'week') { const wd = new Date(d); wd.setDate(wd.getDate() - wd.getDay()); key = wd.toISOString().split('T')[0]; }
+    else key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    if (!groups[key]) groups[key] = { rev: 0, count: 0 };
+    groups[key].rev += s.price / 100;
+    groups[key].count++;
+  });
+  return groups;
+}
+
+function setGrouping(g) { grouping = g; renderCharts(); }
+
+function renderCharts() {
+  const groups = groupSales(grouping);
+  const labels = Object.keys(groups).sort();
+  const revData = labels.map(l => groups[l].rev.toFixed(2));
+  const countData = labels.map(l => groups[l].count);
+
+  // Revenue chart
+  if (charts.revenue) charts.revenue.destroy();
+  charts.revenue = new Chart(document.getElementById('revenueChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Revenue ($)', data: revData, borderColor: '#51cf66', backgroundColor: 'rgba(81,207,102,0.1)', fill: true, tension: 0.4, pointRadius: 3 }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#6b6b8a', maxTicksLimit: 10 }, grid: { color: '#1c1c27' } }, y: { ticks: { color: '#6b6b8a', callback: v => '$' + v }, grid: { color: '#1c1c27' } } } }
+  });
+
+  // Sales count chart
+  if (charts.sales) charts.sales.destroy();
+  charts.sales = new Chart(document.getElementById('salesChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Sales', data: countData, backgroundColor: 'rgba(78,205,196,0.6)', borderColor: '#4ecdc4', borderWidth: 1 }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#6b6b8a', maxTicksLimit: 10 }, grid: { color: '#1c1c27' } }, y: { ticks: { color: '#6b6b8a' }, grid: { color: '#1c1c27' } } } }
+  });
+
+  // Top products
+  const byProduct = {};
+  allSales.filter(s => !s.refunded && s.price > 0).forEach(s => {
+    if (!byProduct[s.product_name]) byProduct[s.product_name] = { rev: 0, count: 0 };
+    byProduct[s.product_name].rev += s.price / 100;
+    byProduct[s.product_name].count++;
+  });
+  const topRev = Object.entries(byProduct).sort((a,b) => b[1].rev - a[1].rev).slice(0,6);
+  const topCount = Object.entries(byProduct).sort((a,b) => b[1].count - a[1].count).slice(0,6);
+  const colors = ['#ff6b6b','#4ecdc4','#ffe66d','#667eea','#51cf66','#f39c12'];
+
+  if (charts.topRev) charts.topRev.destroy();
+  charts.topRev = new Chart(document.getElementById('topRevenueChart'), {
+    type: 'doughnut',
+    data: { labels: topRev.map(([n]) => n.substring(0,25) + (n.length > 25 ? '...' : '')), datasets: [{ data: topRev.map(([,v]) => v.rev.toFixed(2)), backgroundColor: colors }] },
+    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#6b6b8a', font: { size: 10 } } } } }
+  });
+
+  if (charts.topSales) charts.topSales.destroy();
+  charts.topSales = new Chart(document.getElementById('topSalesChart'), {
+    type: 'doughnut',
+    data: { labels: topCount.map(([n]) => n.substring(0,25) + (n.length > 25 ? '...' : '')), datasets: [{ data: topCount.map(([,v]) => v.count), backgroundColor: colors }] },
+    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#6b6b8a', font: { size: 10 } } } } }
+  });
+}
+
+function renderTable() {
+  const sorted = [...allSales].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  document.getElementById('salesCount').textContent = sorted.length + ' sales';
+  document.getElementById('salesTable').innerHTML = sorted.slice(0,100).map(s => `
+    <tr>
+      <td style="color:var(--muted);font-size:10px">${new Date(s.created_at).toLocaleDateString()}</td>
+      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.product_name}</td>
+      <td style="color:var(--success)">$${(s.price/100).toFixed(2)}</td>
+      <td style="color:var(--muted)">${s.email||'—'}</td>
+      <td><span style="font-size:10px;padding:2px 8px;border-radius:12px;background:${s.refunded?'rgba(255,107,107,0.12)':'rgba(81,207,102,0.12)'};color:${s.refunded?'#ff6b6b':'#51cf66'}">${s.refunded?'Refunded':'Paid'}</span></td>
+    </tr>`).join('');
+}
+
+function exportSalesCSV() {
+  exportCSV(allSales.map(s => [new Date(s.created_at).toLocaleDateString(), s.product_name, (s.price/100).toFixed(2), s.email||'', s.refunded?'Refunded':'Paid']),
+    ['Date','Product','Amount','Buyer Email','Status'], 'sales-report.csv');
+}
+
+Chart.defaults.color = '#6b6b8a';
+Chart.defaults.borderColor = '#2a2a3a';
+injectNav('sales-chart'); injectMobileStyles(); prefillTokens();
+</script>
+</body>
+</html>

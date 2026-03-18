@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Price Optimizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="shared.js"></script>
+<style>
+  :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#ffe66d;--accent2:#4ecdc4;--purple:#667eea;--text:#f0f0f5;--muted:#6b6b8a;--success:#51cf66;--danger:#ff6b6b;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}.logo span{color:var(--accent);}
+  .container{max-width:1000px;margin:0 auto;padding:28px 20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;margin-bottom:20px;}
+  .card h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;}
+  .card p{color:var(--muted);font-size:12px;margin-bottom:24px;line-height:1.6;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .form-group{display:flex;flex-direction:column;gap:8px;}
+  .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .form-input,.form-select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color 0.2s;width:100%;}
+  .form-input:focus,.form-select:focus{border-color:var(--accent);}
+  .btn{background:var(--accent);color:#0a0a0f;border:none;border-radius:10px;padding:12px 24px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
+  .btn:hover{opacity:0.85;transform:translateY(-1px);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);background:transparent;}
+  .btn-sm{padding:7px 14px;font-size:11px;border-radius:7px;}
+  .product-row{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;}
+  .product-name{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:4px;}
+  .product-meta{font-size:11px;color:var(--muted);}
+  .recommend-badge{font-size:11px;padding:6px 12px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;white-space:nowrap;}
+  .rec-convert{background:rgba(255,230,109,0.15);color:var(--accent);border:1px solid rgba(255,230,109,0.3);}
+  .rec-raise{background:rgba(81,207,102,0.12);color:var(--success);border:1px solid rgba(81,207,102,0.3);}
+  .rec-keep{background:rgba(107,107,138,0.12);color:var(--muted);border:1px solid var(--border);}
+  .ai-reason{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;}
+  .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<header><div class="logo">Price <span>Optimizer</span></div><div style="font-size:11px;color:var(--muted)" id="hStatus">Not connected</div></header>
+<div class="container">
+  <div id="setup">
+    <div class="card">
+      <h2>💡 Price Optimizer</h2>
+      <p>Analyzes your free products by download count and uses AI to recommend which ones to convert to paid, and at what price point.</p>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Gumroad API Token</label><input class="form-input" id="gumroadToken" type="password" /></div>
+        <div class="form-group"><label class="form-label">Anthropic API Key</label><input class="form-input" id="anthropicKey" type="password" placeholder="sk-ant-..." /></div>
+      </div>
+      <div class="form-group" style="margin-bottom:20px">
+        <label class="form-label">Min downloads to consider converting</label>
+        <input class="form-input" id="minDownloads" type="number" value="20" style="max-width:160px" />
+      </div>
+      <button class="btn" onclick="runOptimizer()">💡 Analyze Pricing</button>
+    </div>
+  </div>
+  <div id="results" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800">💡 Price Recommendations</div>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('results').style.display='none';document.getElementById('setup').style.display='block'">🔄 Rerun</button>
+    </div>
+    <div id="recommendations"></div>
+  </div>
+</div>
+<script>
+async function runOptimizer() {
+  const token = document.getElementById('gumroadToken').value.trim();
+  const antKey = document.getElementById('anthropicKey').value.trim();
+  const minDl = parseInt(document.getElementById('minDownloads').value) || 20;
+  if (!token) return showSharedToast('Enter your Gumroad token', 'error');
+  GR.setGumroad(token); if (antKey) GR.setAnthropic(antKey);
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('recommendations').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)"><div class="spinner"></div><br><br>Analyzing your products...</div>';
+  try {
+    const res = await gumroadAPI('/v2/products');
+    if (!res.success) throw new Error('Failed to load products');
+    const freeProd = res.products.filter(p => (!p.price || p.price === 0) && p.published && parseInt(p.sales_count||0) >= minDl);
+    freeProd.sort((a,b) => parseInt(b.sales_count||0) - parseInt(a.sales_count||0));
+    if (!freeProd.length) { document.getElementById('recommendations').innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted)">No free products with ${minDl}+ downloads found.</div>`; return; }
+    document.getElementById('hStatus').textContent = `Analyzing ${freeProd.length} products...`;
+    const html = []; let done = 0;
+    document.getElementById('recommendations').innerHTML = freeProd.map((_,i) => `<div id="rec-${i}" class="product-row"><div>Loading...</div></div>`).join('');
+    for (let i = 0; i < freeProd.length; i++) {
+      const p = freeProd[i];
+      const el = document.getElementById(`rec-${i}`);
+      el.innerHTML = `<div><div class="product-name">${p.name}</div><div class="product-meta">${p.sales_count} downloads</div></div><div><span class="spinner"></span></div>`;
+      let rec = { action: 'keep', price: 0, reason: 'Low demand or generic content.' };
+      if (antKey) {
+        try {
+          const prompt = `You are a Gumroad pricing expert. Analyze this free product and recommend pricing.
+Product: "${p.name}"
+Downloads: ${p.sales_count}
+Description: ${(p.description||'').substring(0,200)}
+Options: convert_to_paid (suggest price in USD), raise_awareness (keep free but improve), keep_free (strategic freebie)
+Reply ONLY as JSON: {"action":"convert_to_paid|raise_awareness|keep_free","suggested_price_usd":9.99,"reason":"2 sentence explanation"}`;
+          const text = await claudeAPI(prompt, 200);
+          const clean = text.replace(/```json|```/g,'').trim();
+          rec = JSON.parse(clean);
+        } catch(e) {}
+      } else {
+        const dl = parseInt(p.sales_count||0);
+        if (dl > 100) rec = { action: 'convert_to_paid', suggested_price_usd: 9.99, reason: 'High demand with 100+ downloads makes this a strong candidate for monetization.' };
+        else if (dl > 50) rec = { action: 'convert_to_paid', suggested_price_usd: 4.99, reason: 'Solid download count suggests real interest. A low price point could convert well.' };
+        else rec = { action: 'keep_free', suggested_price_usd: 0, reason: 'Use as a lead magnet to build your audience first.' };
+      }
+      const badgeClass = rec.action === 'convert_to_paid' ? 'rec-convert' : rec.action === 'raise_awareness' ? 'rec-raise' : 'rec-keep';
+      const badgeText = rec.action === 'convert_to_paid' ? `💰 Convert → $${rec.suggested_price_usd}` : rec.action === 'raise_awareness' ? '📈 Improve & Keep Free' : '✓ Keep Free';
+      el.innerHTML = `<div><div class="product-name">${p.name}</div><div class="product-meta">${p.sales_count} downloads · Free</div><div class="ai-reason">${rec.reason||''}</div></div><div><span class="recommend-badge ${badgeClass}">${badgeText}</span></div>`;
+      done++;
+    }
+    document.getElementById('hStatus').textContent = `${done} products analyzed`;
+  } catch(e) { document.getElementById('recommendations').innerHTML = `<div style="color:var(--danger);padding:20px">Error: ${e.message}</div>`; }
+}
+injectNav('price-optimizer'); injectMobileStyles(); prefillTokens();
+</script>
+</body>
+</html>

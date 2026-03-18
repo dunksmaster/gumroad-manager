@@ -638,6 +638,7 @@
     display: none;
   }
 </style>
+<script src="shared.js"></script>
 </head>
 <body>
 <div class="app">
@@ -860,7 +861,9 @@ async function connect() {
     const res = await gumroadFetch('/v2/user', token);
     if (res.success) {
       API_TOKEN = token;
+      GR.setGumroad(token);
       sessionStorage.setItem('gr_token', token);
+      GR.setGumroad(token);
       document.getElementById('token-screen').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
       document.getElementById('statusDot').classList.add('connected');
@@ -1150,11 +1153,13 @@ function showToast(msg, type = 'success') {
 }
 
 // ── AUTO LOGIN ────────────────────────────────────────
-const saved = sessionStorage.getItem('gr_token');
+const saved = GR.getGumroad();
 if (saved) {
   document.getElementById('tokenInput').value = saved;
   connect();
 }
+injectNav('dashboard');
+injectMobileStyles();
 
 // Close modal on overlay click
 document.getElementById('editModal').addEventListener('click', function(e) {

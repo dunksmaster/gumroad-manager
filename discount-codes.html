@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discount Code Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="shared.js"></script>
+<style>
+  :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#f39c12;--accent2:#4ecdc4;--text:#f0f0f5;--muted:#6b6b8a;--success:#51cf66;--danger:#ff6b6b;--purple:#667eea;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}.logo span{color:var(--accent);}
+  .container{max-width:1000px;margin:0 auto;padding:28px 20px;}
+  .layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:16px;}
+  .card h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:8px;}
+  .card p{color:var(--muted);font-size:11px;margin-bottom:20px;line-height:1.6;}
+  .form-group{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+  .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .form-input,.form-select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color 0.2s;width:100%;}
+  .form-input:focus,.form-select:focus{border-color:var(--accent);}
+  .btn{background:var(--accent);color:#0a0a0f;border:none;border-radius:10px;padding:11px 22px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all 0.2s;}
+  .btn:hover{opacity:0.85;transform:translateY(-1px);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);background:transparent;}
+  .btn-danger{background:var(--danger);color:white;}
+  .btn-sm{padding:6px 12px;font-size:11px;border-radius:7px;}
+  .input-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .code-preview{background:var(--bg);border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;margin-bottom:16px;}
+  .code-text{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:4px;color:var(--accent);margin-bottom:6px;}
+  .code-meta{font-size:11px;color:var(--muted);}
+  .product-check-list{max-height:280px;overflow-y:auto;}
+  .product-check-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;}
+  .product-check-item:hover{background:var(--surface2);}
+  .product-check-item input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+  .product-check-name{font-size:12px;flex:1;}
+  .product-check-price{font-size:10px;color:var(--muted);}
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .table-header{padding:13px 18px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .table-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;padding:10px 14px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);}
+  td{padding:10px 14px;font-size:11px;border-bottom:1px solid rgba(42,42,58,0.4);}
+  tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(28,28,39,0.6);}
+  .code-badge{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;color:var(--accent);}
+  .spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<header><div class="logo">Discount <span>Codes</span></div><div style="font-size:11px;color:var(--muted)" id="hStatus">Not connected</div></header>
+<div class="container">
+  <div id="setup" class="card" style="max-width:460px;margin:0 auto 20px">
+    <h2>🎟️ Discount Code Generator</h2>
+    <p>Bulk create coupon codes for your Gumroad products. Apply to specific products or all at once.</p>
+    <div class="form-group"><label class="form-label">Gumroad API Token</label><input class="form-input" id="gumroadToken" type="password" /></div>
+    <button class="btn" onclick="loadForCodes()">🎟️ Load Products</button>
+  </div>
+  <div id="mainContent" style="display:none">
+    <div class="layout">
+      <!-- LEFT: code builder -->
+      <div>
+        <div class="card">
+          <h2>🎟️ Create Codes</h2>
+          <div class="code-preview">
+            <div class="code-text" id="codePreview">SAVE20</div>
+            <div class="code-meta" id="codeMeta">20% off · Unlimited uses</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Code Name</label>
+            <div style="display:flex;gap:8px">
+              <input class="form-input" id="codeName" placeholder="e.g. CRYPTO20" oninput="updatePreview()" style="text-transform:uppercase" />
+              <button class="btn btn-outline btn-sm" onclick="generateRandomCode()">🎲</button>
+            </div>
+          </div>
+          <div class="input-row" style="margin-bottom:14px">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Discount Type</label>
+              <select class="form-select" id="discountType" onchange="updatePreview()">
+                <option value="percent">Percentage %</option>
+                <option value="cents">Fixed Amount $</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Amount</label>
+              <input class="form-input" id="discountAmount" type="number" value="20" min="1" oninput="updatePreview()" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max Uses (leave empty = unlimited)</label>
+            <input class="form-input" id="maxUses" type="number" placeholder="e.g. 100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Apply to</label>
+            <select class="form-select" id="applyTo" onchange="toggleProductPicker(this.value)">
+              <option value="all">All products (universal)</option>
+              <option value="specific">Specific products</option>
+            </select>
+          </div>
+          <div id="productPicker" style="display:none;margin-bottom:16px">
+            <div class="form-label" style="margin-bottom:8px">Select products</div>
+            <input class="form-input" style="margin-bottom:8px" placeholder="🔍 Search..." oninput="filterCodeProducts(this.value)" />
+            <div class="product-check-list" id="codeProductList"></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" style="flex:1" id="createBtn" onclick="createCode()">✅ Create Code</button>
+            <button class="btn btn-outline btn-sm" onclick="bulkCreate()">⚡ Bulk (10 codes)</button>
+          </div>
+        </div>
+      </div>
+      <!-- RIGHT: existing codes -->
+      <div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">Created Codes</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="exportCodesCSV()">📥 CSV</button>
+              <div style="font-size:11px;color:var(--muted);padding:4px 0" id="codeCount">0 codes</div>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Code</th><th>Discount</th><th>Uses</th><th>Action</th></tr></thead>
+            <tbody id="codesTable"><tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted)">No codes created yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let codeProducts = [];
+let createdCodes = [];
+
+async function loadForCodes() {
+  const token = document.getElementById('gumroadToken').value.trim();
+  if (!token) return showSharedToast('Enter your token', 'error');
+  GR.setGumroad(token);
+  const res = await gumroadAPI('/v2/products');
+  if (!res.success) return showSharedToast('Failed to load', 'error');
+  codeProducts = res.products.filter(p => p.published && p.price > 0);
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('hStatus').textContent = `${codeProducts.length} paid products`;
+  renderCodeProducts(codeProducts);
+}
+
+function renderCodeProducts(prods) {
+  document.getElementById('codeProductList').innerHTML = prods.map(p => `
+    <div class="product-check-item">
+      <input type="checkbox" class="prod-code-check" value="${p.id}" />
+      <div class="product-check-name">${p.name.substring(0,40)}${p.name.length>40?'...':''}</div>
+      <div class="product-check-price">$${(p.price/100).toFixed(2)}</div>
+    </div>`).join('');
+}
+
+function filterCodeProducts(q) { renderCodeProducts(codeProducts.filter(p => p.name.toLowerCase().includes(q.toLowerCase()))); }
+
+function toggleProductPicker(val) { document.getElementById('productPicker').style.display = val === 'specific' ? 'block' : 'none'; }
+
+function updatePreview() {
+  const name = (document.getElementById('codeName').value || 'SAVE20').toUpperCase();
+  const type = document.getElementById('discountType').value;
+  const amt = document.getElementById('discountAmount').value || 20;
+  const uses = document.getElementById('maxUses').value;
+  document.getElementById('codePreview').textContent = name;
+  document.getElementById('codeMeta').textContent = (type === 'percent' ? amt + '% off' : '$' + (amt/100).toFixed(2) + ' off') + ' · ' + (uses ? uses + ' max uses' : 'Unlimited uses');
+}
+
+function generateRandomCode() {
+  const prefixes = ['SAVE', 'DEAL', 'GET', 'OFF', 'WIN', 'CRYPTO', 'AI', 'FREE'];
+  const nums = [10, 15, 20, 25, 30, 40, 50];
+  const pre = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const num = nums[Math.floor(Math.random() * nums.length)];
+  document.getElementById('codeName').value = pre + num;
+  document.getElementById('discountAmount').value = num;
+  updatePreview();
+}
+
+async function createCode() {
+  const name = document.getElementById('codeName').value.trim().toUpperCase();
+  if (!name) return showSharedToast('Enter a code name', 'error');
+  const type = document.getElementById('discountType').value;
+  const amt = parseInt(document.getElementById('discountAmount').value);
+  const maxUses = document.getElementById('maxUses').value;
+  const applyTo = document.getElementById('applyTo').value;
+  const btn = document.getElementById('createBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  if (applyTo === 'all') {
+    // Universal code — apply to first product as universal
+    const res = await createCodeForProduct(codeProducts[0]?.id || '', name, type, amt, maxUses, true);
+    addCodeToTable({ name, type, amt, maxUses, universal: true, success: res });
+  } else {
+    const selected = [...document.querySelectorAll('.prod-code-check:checked')].map(c => c.value);
+    if (!selected.length) { btn.disabled = false; btn.textContent = '✅ Create Code'; return showSharedToast('Select at least one product', 'error'); }
+    for (const pid of selected) {
+      const res = await createCodeForProduct(pid, name, type, amt, maxUses, false);
+      addCodeToTable({ name, type, amt, maxUses, productId: pid, success: res });
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+  showSharedToast(`Code "${name}" created!`, 'success');
+  btn.disabled = false; btn.textContent = '✅ Create Code';
+}
+
+async function createCodeForProduct(productId, name, type, amt, maxUses, universal) {
+  if (!productId) return false;
+  const body = { name, amount_off: amt, offer_type: type === 'percent' ? 'percent' : 'cents' };
+  if (maxUses) body.max_purchase_count = maxUses;
+  if (universal) body.universal = 'true';
+  const res = await gumroadAPI(`/v2/products/${productId}/offer_codes`, 'POST', body);
+  return res.success;
+}
+
+async function bulkCreate() {
+  const name = document.getElementById('codeName').value.trim().toUpperCase();
+  if (!name) return showSharedToast('Enter a base code name', 'error');
+  const type = document.getElementById('discountType').value;
+  const amt = parseInt(document.getElementById('discountAmount').value);
+  const maxUses = document.getElementById('maxUses').value;
+  if (!codeProducts.length) return showSharedToast('No paid products found', 'error');
+  showSharedToast('Creating 10 unique codes...', 'success');
+  for (let i = 1; i <= 10; i++) {
+    const codeName = name + i;
+    await createCodeForProduct(codeProducts[0].id, codeName, type, amt, maxUses || 1, true);
+    addCodeToTable({ name: codeName, type, amt, maxUses: maxUses || 1, universal: true, success: true });
+    await new Promise(r => setTimeout(r, 400));
+  }
+  showSharedToast('10 codes created!', 'success');
+}
+
+function addCodeToTable(code) {
+  createdCodes.push(code);
+  document.getElementById('codeCount').textContent = createdCodes.length + ' codes';
+  const tbody = document.getElementById('codesTable');
+  if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
+  const tr = document.createElement('tr');
+  const disc = code.type === 'percent' ? code.amt + '%' : '$' + (code.amt/100).toFixed(2);
+  tr.innerHTML = `
+    <td><span class="code-badge">${code.name}</span></td>
+    <td style="color:var(--accent)">${disc} off</td>
+    <td style="color:var(--muted)">${code.maxUses || '∞'}</td>
+    <td><span style="font-size:10px;padding:2px 8px;border-radius:12px;background:${code.success?'rgba(81,207,102,0.12)':'rgba(255,107,107,0.12)'};color:${code.success?'#51cf66':'#ff6b6b'}">${code.success?'✓ Created':'✗ Failed'}</span></td>`;
+  tbody.appendChild(tr);
+}
+
+function exportCodesCSV() {
+  exportCSV(createdCodes.map(c => [c.name, c.type === 'percent' ? c.amt + '%' : '$' + (c.amt/100).toFixed(2), c.maxUses || 'unlimited', c.success ? 'created' : 'failed']),
+    ['Code', 'Discount', 'Max Uses', 'Status'], 'discount-codes.csv');
+}
+
+updatePreview();
+injectNav('discount-codes'); injectMobileStyles(); prefillTokens();
+</script>
+</body>
+</html>

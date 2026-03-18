@@ -177,6 +177,7 @@
   .apply-all-row { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
   .apply-all-row label { font-size: 11px; color: var(--muted); }
 </style>
+<script src="shared.js"></script>
 </head>
 <body>
 
@@ -421,7 +422,9 @@ async function start() {
   if (selectedCats.size === 0) return showToast('Select at least one category', 'error');
 
   TOKEN = t;
+  GR.setGumroad(t);
   window._anthropicKey = document.getElementById('anthropicKey').value.trim();
+  if (window._anthropicKey) GR.setAnthropic(window._anthropicKey);
   if (mode === 'ai' && !window._anthropicKey) {
     showToast('Enter your Anthropic API key for AI mode', 'error');
     return;
@@ -773,6 +776,9 @@ async function previewProductFromUrl() {
 
 // Init
 initCategoryPicker();
+injectNav('categories');
+injectMobileStyles();
+prefillTokens();
 </script>
 </body>
 </html>

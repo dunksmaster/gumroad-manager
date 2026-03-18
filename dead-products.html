@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dead Products Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="shared.js"></script>
+<style>
+  :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#ff6b6b;--accent2:#4ecdc4;--text:#f0f0f5;--muted:#6b6b8a;--success:#51cf66;--danger:#ff6b6b;--yellow:#ffe66d;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}.logo span{color:var(--danger);}
+  .container{max-width:1000px;margin:0 auto;padding:28px 20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;margin-bottom:20px;}
+  .card h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;}
+  .card p{color:var(--muted);font-size:12px;margin-bottom:24px;line-height:1.6;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .form-group{display:flex;flex-direction:column;gap:8px;}
+  .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .form-input,.form-select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color 0.2s;width:100%;}
+  .form-input:focus{border-color:var(--danger);}
+  .btn{background:var(--danger);color:white;border:none;border-radius:10px;padding:12px 24px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
+  .btn:hover{opacity:0.85;transform:translateY(-1px);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-outline:hover{border-color:var(--danger);color:var(--danger);background:transparent;}
+  .btn-success{background:var(--success);color:#0a0a0f;}
+  .btn-sm{padding:7px 14px;font-size:11px;border-radius:7px;}
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;}
+  .stat-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .stat-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;}
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+  .table-header{padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .table-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;padding:10px 16px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);}
+  td{padding:11px 16px;font-size:12px;border-bottom:1px solid rgba(42,42,58,0.4);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(28,28,39,0.6);}
+  .check{width:16px;height:16px;accent-color:var(--danger);cursor:pointer;}
+  .badge{font-size:10px;padding:2px 8px;border-radius:12px;}
+  .badge-dead{background:rgba(255,107,107,0.12);color:var(--danger);}
+  .badge-slow{background:rgba(255,230,109,0.12);color:var(--yellow);}
+  .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--danger);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<header><div class="logo">Dead <span>Products</span></div><div style="font-size:11px;color:var(--muted)" id="hStatus">Not connected</div></header>
+<div class="container">
+  <div id="setup">
+    <div class="card">
+      <h2>💀 Dead Products Finder</h2>
+      <p>Finds products with zero or very low sales so you can unpublish, improve, or delete them to keep your store clean and focused.</p>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Gumroad API Token</label><input class="form-input" id="gumroadToken" type="password" /></div>
+        <div class="form-group"><label class="form-label">Define "dead" — max sales count</label>
+          <select class="form-select" id="deadThreshold">
+            <option value="0">0 sales (strictly dead)</option>
+            <option value="2">0-2 sales</option>
+            <option value="5" selected>0-5 sales</option>
+            <option value="10">0-10 sales</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" onclick="findDead()">💀 Find Dead Products</button>
+    </div>
+  </div>
+  <div id="results" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800">💀 Dead Products Found</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="selectAll()">Select All</button>
+        <button class="btn btn-outline btn-sm" onclick="deselectAll()">Deselect All</button>
+        <button class="btn btn-outline btn-sm" onclick="bulkUnpublish()">⬇️ Unpublish Selected</button>
+        <button class="btn btn-outline btn-sm" onclick="exportDeadCSV()">📥 Export CSV</button>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('results').style.display='none';document.getElementById('setup').style.display='block'">🔄 Rerun</button>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Dead Products</div><div class="stat-value" style="color:var(--danger)" id="sDead">0</div></div>
+      <div class="stat-card"><div class="stat-label">Slow Products</div><div class="stat-value" style="color:var(--yellow)" id="sSlow">0</div></div>
+      <div class="stat-card"><div class="stat-label">% of Store</div><div class="stat-value" style="color:var(--muted)" id="sPct">0%</div></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><div class="table-title">Products to review</div><div id="deadCount" style="font-size:11px;color:var(--muted)"></div></div>
+      <table>
+        <thead><tr><th><input type="checkbox" class="check" onchange="toggleAll(this)" /></th><th>Product</th><th>Sales</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="deadTable"></tbody>
+      </table>
+    </div>
+    <div id="bulkStatus" style="font-size:12px;color:var(--muted);text-align:center;padding:12px"></div>
+  </div>
+</div>
+<script>
+let deadProducts = [];
+let allProducts = [];
+
+async function findDead() {
+  const token = document.getElementById('gumroadToken').value.trim();
+  if (!token) return showSharedToast('Enter your token', 'error');
+  GR.setGumroad(token);
+  const threshold = parseInt(document.getElementById('deadThreshold').value);
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('deadTable').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--muted)"><div class="spinner"></div> Loading...</td></tr>';
+  try {
+    const res = await gumroadAPI('/v2/products');
+    if (!res.success) throw new Error('Failed to load');
+    allProducts = res.products;
+    deadProducts = allProducts.filter(p => parseInt(p.sales_count||0) <= threshold);
+    const strictDead = deadProducts.filter(p => parseInt(p.sales_count||0) === 0);
+    const slow = deadProducts.filter(p => parseInt(p.sales_count||0) > 0);
+    document.getElementById('sDead').textContent = strictDead.length;
+    document.getElementById('sSlow').textContent = slow.length;
+    document.getElementById('sPct').textContent = Math.round((deadProducts.length/allProducts.length)*100) + '%';
+    document.getElementById('deadCount').textContent = deadProducts.length + ' products';
+    document.getElementById('hStatus').textContent = `${deadProducts.length} dead found`;
+    document.getElementById('deadTable').innerHTML = deadProducts.map((p,i) => {
+      const sales = parseInt(p.sales_count||0);
+      const badge = sales === 0 ? '<span class="badge badge-dead">💀 Zero sales</span>' : '<span class="badge badge-slow">🐌 Very slow</span>';
+      return `<tr>
+        <td><input type="checkbox" class="check dead-check" data-idx="${i}" /></td>
+        <td style="max-width:300px"><div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div style="font-size:10px;color:var(--muted)">${p.published?'Published':'Unpublished'}</div></td>
+        <td style="color:var(--danger)">${sales}</td>
+        <td>${badge}</td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" onclick="unpublishOne('${p.id}', this)">Unpublish</button>
+          <a href="${p.short_url||'#'}" target="_blank" style="text-decoration:none"><button class="btn btn-outline btn-sm">View</button></a>
+        </div></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--muted)">No dead products found! 🎉</td></tr>';
+  } catch(e) { showSharedToast('Error: ' + e.message, 'error'); }
+}
+
+async function unpublishOne(id, btn) {
+  btn.disabled = true; btn.textContent = '...';
+  const res = await gumroadAPI(`/v2/products/${id}/disable`, 'PUT');
+  if (res.success) { btn.textContent = '✓ Done'; btn.style.color = 'var(--success)'; }
+  else { btn.textContent = '✗ Error'; btn.disabled = false; }
+}
+
+async function bulkUnpublish() {
+  const checked = [...document.querySelectorAll('.dead-check:checked')].map(c => parseInt(c.dataset.idx));
+  if (!checked.length) return showSharedToast('Select products first', 'error');
+  document.getElementById('bulkStatus').textContent = `Unpublishing ${checked.length} products...`;
+  let done = 0;
+  for (const idx of checked) {
+    const p = deadProducts[idx];
+    const res = await gumroadAPI(`/v2/products/${p.id}/disable`, 'PUT');
+    if (res.success) done++;
+    await new Promise(r => setTimeout(r, 300));
+  }
+  document.getElementById('bulkStatus').textContent = `✅ Unpublished ${done} of ${checked.length} products`;
+  showSharedToast(`Unpublished ${done} products`, 'success');
+}
+
+function selectAll() { document.querySelectorAll('.dead-check').forEach(c => c.checked = true); }
+function deselectAll() { document.querySelectorAll('.dead-check').forEach(c => c.checked = false); }
+function toggleAll(cb) { document.querySelectorAll('.dead-check').forEach(c => c.checked = cb.checked); }
+function exportDeadCSV() {
+  exportCSV(deadProducts.map(p => [p.name, p.sales_count||0, p.price?(p.price/100).toFixed(2):'Free', p.published?'Yes':'No', p.short_url||'']),
+    ['Name','Sales','Price','Published','URL'], 'dead-products.csv');
+}
+injectNav('dead-products'); injectMobileStyles(); prefillTokens();
+</script>
+</body>
+</html>
