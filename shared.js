@@ -13,6 +13,9 @@ const GR = {
 function injectNav(activePage) {
   const pages = [
     { id: 'dashboard', label: '📦 Dashboard', url: 'index.html' },
+    { id: 'store-health', label: '🏥 Health Score', url: 'store-health.html' },
+    { id: 'revenue-goal', label: '🎯 Revenue Goal', url: 'revenue-goal.html' },
+    { id: 'launch-checklist', label: '🚀 Launch', url: 'launch-checklist.html' },
     { id: 'rewriter', label: '✨ AI Rewriter', url: 'rewriter.html' },
     { id: 'categories', label: '🏷️ Categories', url: 'categories.html' },
     { id: 'competitor', label: '🕵️ Competitor', url: 'competitor.html' },
@@ -20,8 +23,10 @@ function injectNav(activePage) {
     { id: 'price-optimizer', label: '💡 Price Optimizer', url: 'price-optimizer.html' },
     { id: 'dead-products', label: '💀 Dead Products', url: 'dead-products.html' },
     { id: 'bulk-publish', label: '⚡ Bulk Publish', url: 'bulk-publish.html' },
-    { id: 'linkedin', label: '💼 LinkedIn Posts', url: 'linkedin.html' },
-    { id: 'discount-codes', label: '🎟️ Discount Codes', url: 'discount-codes.html' },
+    { id: 'linkedin', label: '💼 LinkedIn', url: 'linkedin.html' },
+    { id: 'discount-codes', label: '🎟️ Discounts', url: 'discount-codes.html' },
+    { id: 'email-campaign', label: '📧 Email', url: 'email-campaign.html' },
+    { id: 'scheduled-publish', label: '⏰ Scheduled', url: 'scheduled-publish.html' },
   ];
 
   const nav = document.createElement('div');

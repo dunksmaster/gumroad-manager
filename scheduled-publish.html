@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scheduled Publish</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="shared.js"></script>
+<style>
+  :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#f39c12;--text:#f0f0f5;--muted:#6b6b8a;--success:#51cf66;--danger:#ff6b6b;--yellow:#ffe66d;--teal:#4ecdc4;--purple:#667eea;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}.logo span{color:var(--accent);}
+  .container{max-width:900px;margin:0 auto;padding:28px 20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:20px;}
+  .card h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;}
+  .card p{color:var(--muted);font-size:12px;margin-bottom:24px;line-height:1.6;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .form-group{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .form-input,.form-select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;width:100%;}
+  .form-input:focus,.form-select:focus{border-color:var(--accent);}
+  .btn{background:var(--accent);color:#0a0a0f;border:none;border-radius:10px;padding:12px 28px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
+  .btn:hover{opacity:0.85;transform:translateY(-1px);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);background:transparent;}
+  .btn-danger{background:var(--danger);color:white;}
+  .btn-sm{padding:7px 14px;font-size:11px;border-radius:7px;}
+
+  .layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+  .schedule-item{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;}
+  .schedule-item.active{border-color:rgba(243,156,18,0.4);background:rgba(243,156,18,0.06);}
+  .schedule-item.fired{border-color:rgba(81,207,102,0.3);background:rgba(81,207,102,0.04);}
+  .schedule-item.past{opacity:0.5;}
+  .sched-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:4px;}
+  .sched-time{font-size:11px;color:var(--muted);}
+  .sched-countdown{font-size:11px;color:var(--accent);font-family:'Syne',sans-serif;font-weight:700;}
+  .sched-status{font-size:10px;padding:2px 8px;border-radius:12px;}
+  .sched-status.scheduled{background:rgba(243,156,18,0.12);color:var(--accent);}
+  .sched-status.published{background:rgba(81,207,102,0.12);color:var(--success);}
+  .sched-status.past{background:rgba(107,107,138,0.12);color:var(--muted);}
+
+  .product-picker-item{padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:6px;transition:all 0.15s;}
+  .product-picker-item:hover,.product-picker-item.selected{border-color:var(--accent);background:rgba(243,156,18,0.06);}
+  .ppi-name{font-size:12px;font-family:'Syne',sans-serif;font-weight:600;margin-bottom:2px;}
+  .ppi-meta{font-size:10px;color:var(--muted);}
+
+  .timer-display{text-align:center;padding:20px;background:var(--surface2);border-radius:12px;margin-bottom:16px;}
+  .timer-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .timer-val{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--accent);}
+
+  .info-box{background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.3);border-radius:10px;padding:14px;font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<header><div class="logo">Scheduled <span>Publish</span></div><div id="hStatus" style="font-size:11px;color:var(--muted)">Not connected</div></header>
+<div class="container">
+
+  <div id="setup">
+    <div class="card" style="max-width:460px;margin:0 auto">
+      <h2>⏰ Scheduled Publish</h2>
+      <p>Schedule any of your Gumroad products to auto-publish at a specific date and time. The page checks every minute and publishes automatically when the time arrives.</p>
+      <div class="info-box">⚠️ This tool requires the browser tab to stay open to fire scheduled publishes. For guaranteed scheduling, keep the tab active or consider a Zapier/Make webhook instead.</div>
+      <div class="form-group"><label class="form-label">Gumroad API Token</label><input class="form-input" id="gumroadToken" type="password" /></div>
+      <button class="btn" onclick="loadScheduler()">⏰ Load Scheduler</button>
+    </div>
+  </div>
+
+  <div id="mainContent" style="display:none">
+    <div class="layout">
+      <!-- LEFT: Schedule builder -->
+      <div>
+        <div class="card">
+          <h2>➕ Schedule a Publish</h2>
+          <div class="form-group">
+            <label class="form-label">Select Product</label>
+            <select class="form-select" id="schedProductSelect"></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Date</label>
+              <input class="form-input" id="schedDate" type="date" />
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Time</label>
+              <input class="form-input" id="schedTime" type="time" value="09:00" />
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:14px">
+            <label class="form-label">Action</label>
+            <select class="form-select" id="schedAction">
+              <option value="publish">Publish (make visible)</option>
+              <option value="unpublish">Unpublish (hide)</option>
+            </select>
+          </div>
+          <div id="countdownPreview" style="display:none" class="timer-display">
+            <div class="timer-label">Time until scheduled action</div>
+            <div class="timer-val" id="countdownVal">--:--:--</div>
+          </div>
+          <button class="btn" style="width:100%;margin-top:4px" onclick="addSchedule()">⏰ Add to Schedule</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Scheduled items -->
+      <div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800">📅 Scheduled Items</div>
+            <div style="font-size:11px;color:var(--muted)" id="schedCount">0 items</div>
+          </div>
+          <div id="scheduleList"><div style="text-align:center;padding:40px;color:var(--muted);font-size:12px">No items scheduled yet.<br>Add one on the left!</div></div>
+        </div>
+
+        <div class="card">
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:14px">📦 All Products</div>
+          <input class="form-input" placeholder="🔍 Search..." oninput="filterSchedProducts(this.value)" style="margin-bottom:10px" />
+          <div id="schedProductList" style="max-height:300px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let schedProducts = [];
+let schedules = [];
+let schedTimer;
+let countdownTimer;
+
+async function loadScheduler() {
+  const token = document.getElementById('gumroadToken').value.trim();
+  if (!token) return showSharedToast('Enter your token', 'error');
+  GR.setGumroad(token);
+
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+
+  // Set min date to today
+  document.getElementById('schedDate').min = new Date().toISOString().split('T')[0];
+  document.getElementById('schedDate').value = new Date().toISOString().split('T')[0];
+
+  // Load saved schedules
+  schedules = JSON.parse(localStorage.getItem('gumroad_schedules')||'[]');
+
+  try {
+    const res = await gumroadAPI('/v2/products');
+    if (!res.success) throw new Error('Failed to load');
+    schedProducts = res.products;
+    document.getElementById('hStatus').textContent = `${schedProducts.length} products`;
+
+    const sel = document.getElementById('schedProductSelect');
+    sel.innerHTML = schedProducts.map(p => `<option value="${p.id}">${p.name.substring(0,50)} (${p.published?'Published':'Unpublished'})</option>`).join('');
+
+    renderSchedProducts(schedProducts);
+    renderSchedules();
+    startScheduleChecker();
+    startCountdown();
+  } catch(e) {
+    showSharedToast('Error: '+e.message,'error');
+  }
+}
+
+function renderSchedProducts(prods) {
+  document.getElementById('schedProductList').innerHTML = prods.map(p => `
+    <div class="product-picker-item" onclick="selectSchedProduct('${p.id}')">
+      <div class="ppi-name">${p.name.substring(0,50)}${p.name.length>50?'...':''}</div>
+      <div class="ppi-meta">${p.price?'$'+(p.price/100).toFixed(2):'Free'} · ${p.published?'✅ Published':'⭕ Unpublished'}</div>
+    </div>`).join('');
+}
+
+function filterSchedProducts(q) { renderSchedProducts(schedProducts.filter(p => p.name.toLowerCase().includes(q.toLowerCase()))); }
+function selectSchedProduct(id) { document.getElementById('schedProductSelect').value = id; }
+
+function addSchedule() {
+  const productId = document.getElementById('schedProductSelect').value;
+  const date = document.getElementById('schedDate').value;
+  const time = document.getElementById('schedTime').value;
+  const action = document.getElementById('schedAction').value;
+  if (!productId || !date || !time) return showSharedToast('Fill all fields', 'error');
+
+  const scheduledAt = new Date(`${date}T${time}`);
+  if (scheduledAt <= new Date()) return showSharedToast('Choose a future date/time', 'error');
+
+  const product = schedProducts.find(p => p.id === productId);
+  const item = { id: Date.now(), productId, productName: product?.name||'Unknown', action, scheduledAt: scheduledAt.toISOString(), fired: false };
+  schedules.push(item);
+  saveSchedules();
+  renderSchedules();
+  showSharedToast(`⏰ Scheduled ${action} for ${scheduledAt.toLocaleString()}`, 'success');
+}
+
+function deleteSchedule(id) {
+  schedules = schedules.filter(s => s.id !== id);
+  saveSchedules();
+  renderSchedules();
+}
+
+function renderSchedules() {
+  const list = document.getElementById('scheduleList');
+  const active = schedules.filter(s => !s.fired);
+  const fired = schedules.filter(s => s.fired);
+  document.getElementById('schedCount').textContent = active.length + ' pending';
+
+  if (!schedules.length) { list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:12px">No items scheduled yet.</div>'; return; }
+
+  list.innerHTML = [...active, ...fired].map(s => {
+    const dt = new Date(s.scheduledAt);
+    const isPast = dt <= new Date();
+    const countdown = !s.fired && !isPast ? getCountdown(dt) : '';
+    return `
+    <div class="schedule-item ${s.fired?'fired':isPast?'past':'active'}">
+      <div>
+        <div class="sched-name">${s.productName.substring(0,45)}${s.productName.length>45?'...':''}</div>
+        <div class="sched-time">${s.action === 'publish' ? '✅ Publish' : '⬇️ Unpublish'} at ${dt.toLocaleString()}</div>
+        ${countdown ? `<div class="sched-countdown">${countdown}</div>` : ''}
+        <span class="sched-status ${s.fired?'published':isPast?'past':'scheduled'}">${s.fired?'✓ Executed':isPast?'Missed':'⏰ Scheduled'}</span>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="deleteSchedule(${s.id})" style="border-color:var(--danger);color:var(--danger)">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function getCountdown(dt) {
+  const diff = dt - new Date();
+  if (diff <= 0) return '';
+  const h = Math.floor(diff/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  const s = Math.floor((diff%60000)/1000);
+  return `${h}h ${m}m ${s}s`;
+}
+
+function startCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    const date = document.getElementById('schedDate').value;
+    const time = document.getElementById('schedTime').value;
+    if (date && time) {
+      const dt = new Date(`${date}T${time}`);
+      const diff = dt - new Date();
+      const preview = document.getElementById('countdownPreview');
+      if (diff > 0) {
+        preview.style.display = 'block';
+        document.getElementById('countdownVal').textContent = getCountdown(dt);
+      } else { preview.style.display = 'none'; }
+    }
+    renderSchedules();
+  }, 1000);
+}
+
+function startScheduleChecker() {
+  if (schedTimer) clearInterval(schedTimer);
+  schedTimer = setInterval(async () => {
+    const now = new Date();
+    for (const s of schedules) {
+      if (s.fired) continue;
+      if (new Date(s.scheduledAt) <= now) {
+        try {
+          const endpoint = s.action === 'publish' ? 'enable' : 'disable';
+          const res = await gumroadAPI(`/v2/products/${s.productId}/${endpoint}`, 'PUT');
+          if (res.success) {
+            s.fired = true;
+            saveSchedules();
+            showSharedToast(`⏰ Auto-${s.action}ed: ${s.productName.substring(0,30)}`, 'success');
+          }
+        } catch(e) { console.error('Schedule fire error:', e); }
+      }
+    }
+  }, 30000); // check every 30 seconds
+}
+
+function saveSchedules() { localStorage.setItem('gumroad_schedules', JSON.stringify(schedules)); }
+
+injectThemeToggle(); injectNav('scheduled-publish'); injectMobileStyles(); prefillTokens();
+</script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Store Health Score</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="shared.js"></script>
+<style>
+  :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#4ecdc4;--text:#f0f0f5;--muted:#6b6b8a;--success:#51cf66;--danger:#ff6b6b;--yellow:#ffe66d;--purple:#667eea;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}.logo span{color:var(--accent);}
+  .container{max-width:900px;margin:0 auto;padding:28px 20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:20px;}
+  .card h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;}
+  .card p{color:var(--muted);font-size:12px;margin-bottom:24px;line-height:1.6;}
+  .form-group{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .form-input{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;width:100%;max-width:420px;}
+  .form-input:focus{border-color:var(--accent);}
+  .btn{background:var(--accent);color:#0a0a0f;border:none;border-radius:10px;padding:12px 28px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
+  .btn:hover{opacity:0.85;transform:translateY(-1px);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);background:transparent;}
+  .btn-sm{padding:7px 14px;font-size:11px;border-radius:7px;}
+
+  /* SCORE RING */
+  .score-section{display:flex;align-items:center;gap:40px;margin-bottom:32px;flex-wrap:wrap;}
+  .score-ring-wrap{position:relative;width:160px;height:160px;flex-shrink:0;}
+  .score-ring-wrap svg{transform:rotate(-90deg);}
+  .score-number{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+  .score-num{font-family:'Syne',sans-serif;font-size:42px;font-weight:800;line-height:1;}
+  .score-label{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+  .score-grade{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+  .score-desc{font-size:12px;color:var(--muted);line-height:1.6;max-width:400px;}
+
+  /* CATEGORIES */
+  .category-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+  .cat-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;}
+  .cat-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .cat-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;}
+  .cat-score{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;}
+  .cat-bar-track{background:var(--bg);border-radius:20px;height:5px;overflow:hidden;}
+  .cat-bar-fill{height:100%;border-radius:20px;transition:width 1.2s ease;}
+
+  /* FIXES */
+  .fix-item{display:flex;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid var(--border);margin-bottom:10px;align-items:flex-start;transition:all 0.2s;}
+  .fix-item:hover{border-color:var(--accent);}
+  .fix-icon{font-size:20px;flex-shrink:0;margin-top:2px;}
+  .fix-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:3px;}
+  .fix-desc{font-size:11px;color:var(--muted);line-height:1.5;}
+  .fix-impact{font-size:10px;padding:2px 8px;border-radius:12px;margin-top:6px;display:inline-block;}
+  .impact-high{background:rgba(255,107,107,0.12);color:var(--danger);}
+  .impact-med{background:rgba(255,230,109,0.12);color:var(--yellow);}
+  .impact-low{background:rgba(81,207,102,0.12);color:var(--success);}
+  .fix-action{margin-left:auto;flex-shrink:0;}
+
+  .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<header><div class="logo">Store <span>Health Score</span></div><div style="font-size:11px;color:var(--muted)" id="hStatus">Not connected</div></header>
+<div class="container">
+  <div id="setup">
+    <div class="card">
+      <h2>🏥 Store Health Score</h2>
+      <p>Analyzes your entire Gumroad store across 6 dimensions and gives you a score out of 100 with specific, prioritized recommendations to improve your store.</p>
+      <div class="form-group"><label class="form-label">Gumroad API Token</label><input class="form-input" id="gumroadToken" type="password" /></div>
+      <button class="btn" onclick="runHealthCheck()">🏥 Run Health Check</button>
+    </div>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800">Store Health Report</div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-outline btn-sm" onclick="runHealthCheck()">🔄 Recheck</button>
+          <button class="btn btn-outline btn-sm" onclick="exportReport()">📥 Export</button>
+        </div>
+      </div>
+
+      <!-- SCORE RING -->
+      <div class="score-section">
+        <div class="score-ring-wrap">
+          <svg width="160" height="160" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="70" fill="none" stroke="#1c1c27" stroke-width="14"/>
+            <circle cx="80" cy="80" r="70" fill="none" stroke-width="14" stroke-linecap="round"
+              id="scoreArc" stroke-dasharray="439.8" stroke-dashoffset="439.8" style="transition:stroke-dashoffset 1.5s ease;"/>
+          </svg>
+          <div class="score-number">
+            <div class="score-num" id="scoreNum">0</div>
+            <div class="score-label">/ 100</div>
+          </div>
+        </div>
+        <div>
+          <div class="score-grade" id="scoreGrade" style="font-size:24px;margin-bottom:8px"></div>
+          <div class="score-desc" id="scoreDesc"></div>
+          <div style="margin-top:16px;font-size:11px;color:var(--muted)" id="scoreMeta"></div>
+        </div>
+      </div>
+
+      <!-- CATEGORY SCORES -->
+      <div class="category-grid" id="categoryGrid"></div>
+    </div>
+
+    <!-- FIXES -->
+    <div class="card">
+      <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:16px">🔧 Recommended Fixes</div>
+      <div id="fixList"></div>
+    </div>
+  </div>
+</div>
+<script>
+let products = [];
+let reportData = {};
+
+async function runHealthCheck() {
+  const token = document.getElementById('gumroadToken').value.trim();
+  if (!token) return showSharedToast('Enter your token', 'error');
+  GR.setGumroad(token);
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('categoryGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)"><div class="spinner"></div><br><br>Analyzing your store...</div>';
+
+  try {
+    const res = await gumroadAPI('/v2/products');
+    if (!res.success) throw new Error('Failed to load products');
+    products = res.products;
+    document.getElementById('hStatus').textContent = `${products.length} products analyzed`;
+    calculateScore();
+  } catch(e) {
+    showSharedToast('Error: ' + e.message, 'error');
+    document.getElementById('setup').style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+  }
+}
+
+function calculateScore() {
+  const total = products.length;
+  const published = products.filter(p => p.published);
+  const withDesc = products.filter(p => p.description && p.description.length > 50);
+  const withTags = products.filter(p => p.tags && p.tags.length >= 2);
+  const withThumb = products.filter(p => p.thumbnail_url);
+  const withSummary = products.filter(p => p.custom_summary && p.custom_summary.length > 10);
+  const paid = products.filter(p => p.price > 0);
+  const withSales = products.filter(p => parseInt(p.sales_count||0) > 0);
+  const avgPrice = paid.length ? paid.reduce((a,p)=>a+p.price,0)/paid.length/100 : 0;
+  const publishRate = total ? (published.length/total)*100 : 0;
+  const paidRatio = total ? (paid.length/total)*100 : 0;
+
+  // 6 category scores (each out of 100)
+  const cats = [
+    {
+      name: 'Content Quality', icon: '✍️',
+      score: total ? Math.round(((withDesc.length/total)*50 + (withSummary.length/total)*30 + (withTags.length/total)*20)) : 0,
+      detail: `${withDesc.length}/${total} have descriptions, ${withTags.length}/${total} have tags`,
+      color: '#4ecdc4'
+    },
+    {
+      name: 'Visibility', icon: '👁️',
+      score: total ? Math.round((published.length/total)*100) : 0,
+      detail: `${published.length} published, ${total-published.length} hidden`,
+      color: '#667eea'
+    },
+    {
+      name: 'Visual Appeal', icon: '🖼️',
+      score: total ? Math.round((withThumb.length/total)*100) : 0,
+      detail: `${withThumb.length}/${total} have thumbnails`,
+      color: '#ff6b6b'
+    },
+    {
+      name: 'Monetization', icon: '💰',
+      score: Math.min(100, Math.round(paidRatio * 1.5 + (avgPrice > 0 ? Math.min(30, avgPrice) : 0))),
+      detail: `${paid.length} paid products, avg $${avgPrice.toFixed(2)}`,
+      color: '#ffe66d'
+    },
+    {
+      name: 'Sales Performance', icon: '📈',
+      score: total ? Math.round((withSales.length/total)*100) : 0,
+      detail: `${withSales.length}/${total} products have at least 1 sale`,
+      color: '#51cf66'
+    },
+    {
+      name: 'Catalogue Size', icon: '📦',
+      score: Math.min(100, Math.round((total/50)*100)),
+      detail: `${total} products (50+ = full score)`,
+      color: '#f39c12'
+    }
+  ];
+
+  const totalScore = Math.round(cats.reduce((a,c)=>a+c.score,0) / cats.length);
+
+  const grades = [
+    {min:90,grade:'A+',desc:'Excellent! Your store is in great shape.',color:'#51cf66'},
+    {min:80,grade:'A',desc:'Great store — a few tweaks will push you to the top.',color:'#51cf66'},
+    {min:70,grade:'B',desc:'Good foundation. Some areas need attention.',color:'#4ecdc4'},
+    {min:60,grade:'C',desc:'Average. There are clear improvements to make.',color:'#ffe66d'},
+    {min:40,grade:'D',desc:'Needs work. Focus on the high-impact fixes below.',color:'#ff9f43'},
+    {min:0,grade:'F',desc:'Critical issues. Start with the top fixes immediately.',color:'#ff6b6b'},
+  ];
+  const g = grades.find(x=>totalScore>=x.min) || grades[grades.length-1];
+
+  // Animate score
+  let current = 0;
+  const interval = setInterval(() => {
+    current = Math.min(current + 2, totalScore);
+    document.getElementById('scoreNum').textContent = current;
+    const arc = document.getElementById('scoreArc');
+    const offset = 439.8 - (439.8 * current / 100);
+    arc.style.strokeDashoffset = offset;
+    arc.style.stroke = g.color;
+    if (current >= totalScore) clearInterval(interval);
+  }, 20);
+
+  document.getElementById('scoreGrade').innerHTML = `<span style="color:${g.color}">${g.grade}</span> — ${g.grade === 'A+' || g.grade === 'A' ? '🌟' : g.grade === 'B' ? '👍' : g.grade === 'C' ? '⚠️' : '🚨'}`;
+  document.getElementById('scoreDesc').textContent = g.desc;
+  document.getElementById('scoreMeta').textContent = `Based on ${total} products · Checked ${new Date().toLocaleDateString()}`;
+
+  // Render category cards
+  document.getElementById('categoryGrid').innerHTML = cats.map(c => `
+    <div class="cat-card">
+      <div class="cat-header">
+        <div class="cat-name">${c.icon} ${c.name}</div>
+        <div class="cat-score" style="color:${c.color}">${c.score}</div>
+      </div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${c.score}%;background:${c.color}"></div></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px">${c.detail}</div>
+    </div>`).join('');
+
+  // Generate fixes
+  const fixes = [];
+  const noDesc = products.filter(p => !p.description || p.description.length < 50);
+  const noThumb = products.filter(p => !p.thumbnail_url);
+  const noTags = products.filter(p => !p.tags || p.tags.length < 2);
+  const unpublished = products.filter(p => !p.published);
+  const freeProdHighDl = products.filter(p => (!p.price||p.price===0) && parseInt(p.sales_count||0) > 50);
+  const noSales = products.filter(p => parseInt(p.sales_count||0) === 0 && p.published);
+
+  if (noDesc.length > 0) fixes.push({icon:'✍️',title:`${noDesc.length} products have no description`,desc:'Products without descriptions convert poorly. Add at least 3-4 sentences explaining what the buyer gets.',impact:'high',action:'Open AI Rewriter',link:'rewriter.html'});
+  if (noThumb.length > 0) fixes.push({icon:'🖼️',title:`${noThumb.length} products missing thumbnails`,desc:'Thumbnails are the first thing buyers see. Products without them get significantly fewer clicks.',impact:'high',action:'Fix on Gumroad',link:'https://gumroad.com'});
+  if (noTags.length > 0) fixes.push({icon:'🏷️',title:`${noTags.length} products have fewer than 2 tags`,desc:'Tags help buyers find your products through Gumroad search. Aim for 5+ relevant tags per product.',impact:'med',action:'Open Category Manager',link:'categories.html'});
+  if (freeProdHighDl.length > 0) fixes.push({icon:'💰',title:`${freeProdHighDl.length} free products have 50+ downloads — convert to paid`,desc:'These products have proven demand. Even a $4.99 price point could generate significant revenue.',impact:'high',action:'Open Price Optimizer',link:'price-optimizer.html'});
+  if (noSales.length > 5) fixes.push({icon:'💀',title:`${noSales.length} published products have zero sales`,desc:'These products are taking up space and diluting your store quality. Consider unpublishing or improving them.',impact:'med',action:'Open Dead Products',link:'dead-products.html'});
+  if (unpublished.length > 0) fixes.push({icon:'👁️',title:`${unpublished.length} products are unpublished`,desc:'Review these — some may be ready to publish and generate sales.',impact:'low',action:'Open Bulk Publish',link:'bulk-publish.html'});
+  if (paidRatio < 10) fixes.push({icon:'💸',title:'Less than 10% of your products are paid',desc:'You have a strong free catalogue. Start converting your best performers to paid products.',impact:'high',action:'Open Price Optimizer',link:'price-optimizer.html'});
+
+  reportData = { totalScore, grade: g.grade, cats, fixes, total, published: published.length, withDesc: withDesc.length, withTags: withTags.length, withThumb: withThumb.length };
+
+  document.getElementById('fixList').innerHTML = fixes.length ? fixes.map(f => `
+    <div class="fix-item">
+      <div class="fix-icon">${f.icon}</div>
+      <div style="flex:1">
+        <div class="fix-title">${f.title}</div>
+        <div class="fix-desc">${f.desc}</div>
+        <span class="fix-impact impact-${f.impact}">${f.impact === 'high' ? '🔴 High impact' : f.impact === 'med' ? '🟡 Medium impact' : '🟢 Low impact'}</span>
+      </div>
+      <div class="fix-action">
+        <a href="${f.link}" style="text-decoration:none" ${f.link.startsWith('http')?'target="_blank"':''}>
+          <button class="btn btn-outline btn-sm" style="white-space:nowrap">${f.action} →</button>
+        </a>
+      </div>
+    </div>`).join('') : '<div style="text-align:center;padding:32px;color:var(--muted)">🎉 No major issues found! Your store looks great.</div>';
+}
+
+function exportReport() {
+  if (!reportData.totalScore) return;
+  const text = `STORE HEALTH REPORT\nDate: ${new Date().toLocaleDateString()}\n\nOVERALL SCORE: ${reportData.totalScore}/100 (${reportData.grade})\n\nCATEGORY SCORES:\n${reportData.cats.map(c=>`  ${c.name}: ${c.score}/100 — ${c.detail}`).join('\n')}\n\nRECOMMENDED FIXES:\n${reportData.fixes.map((f,i)=>`${i+1}. [${f.impact.toUpperCase()}] ${f.title}\n   ${f.desc}`).join('\n\n')}`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
+  a.download = `store-health-${new Date().toISOString().split('T')[0]}.txt`;
+  a.click();
+}
+
+injectThemeToggle(); injectNav('store-health'); injectMobileStyles(); prefillTokens();
+</script>
+</body>
+</html>

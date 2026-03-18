@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revenue Goal Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="shared.js"></script>
+<style>
+  :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#51cf66;--text:#f0f0f5;--muted:#6b6b8a;--success:#51cf66;--danger:#ff6b6b;--yellow:#ffe66d;--purple:#667eea;--teal:#4ecdc4;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}.logo span{color:var(--accent);}
+  .container{max-width:960px;margin:0 auto;padding:28px 20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:20px;}
+  .card h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;}
+  .card p{color:var(--muted);font-size:12px;margin-bottom:24px;line-height:1.6;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .form-group{display:flex;flex-direction:column;gap:8px;}
+  .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .form-input{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;width:100%;}
+  .form-input:focus{border-color:var(--accent);}
+  .btn{background:var(--accent);color:#0a0a0f;border:none;border-radius:10px;padding:12px 28px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
+  .btn:hover{opacity:0.85;transform:translateY(-1px);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);background:transparent;}
+  .btn-sm{padding:7px 14px;font-size:11px;border-radius:7px;}
+
+  .goal-hero{text-align:center;padding:32px 20px;margin-bottom:24px;}
+  .goal-month{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .goal-amounts{display:flex;align-items:baseline;justify-content:center;gap:12px;margin-bottom:20px;}
+  .goal-current{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:var(--success);}
+  .goal-separator{font-size:24px;color:var(--muted);}
+  .goal-target{font-family:'Syne',sans-serif;font-size:32px;font-weight:700;color:var(--muted);}
+  .goal-bar-track{background:var(--surface2);border-radius:20px;height:16px;overflow:hidden;margin:0 auto 12px;max-width:600px;}
+  .goal-bar-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--teal),var(--success));transition:width 1.5s ease;}
+  .goal-pct{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--accent);}
+
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;}
+  .stat-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  .stat-value{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;}
+
+  .scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+  .scenario-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;}
+  .scenario-card h4{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:12px;}
+  .scenario-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--teal);margin-bottom:4px;}
+  .scenario-desc{font-size:10px;color:var(--muted);line-height:1.5;}
+
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;}
+  .chart-card h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:20px;}
+  canvas{max-height:220px;}
+
+  .milestone{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:10px;border:1px solid var(--border);margin-bottom:8px;}
+  .milestone-icon{font-size:20px;}
+  .milestone-text{flex:1;font-size:12px;}
+  .milestone-val{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--teal);}
+  .milestone.reached{border-color:var(--success);background:rgba(81,207,102,0.06);}
+  .milestone.next{border-color:var(--yellow);background:rgba(255,230,109,0.06);}
+  .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<header><div class="logo">Revenue <span>Goal Tracker</span></div><div style="font-size:11px;color:var(--muted)" id="hStatus">Not connected</div></header>
+<div class="container">
+  <div id="setup">
+    <div class="card">
+      <h2>🎯 Revenue Goal Tracker</h2>
+      <p>Set your monthly revenue target and track progress in real time. See exactly how many sales you need and what pricing strategies will get you there.</p>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Gumroad API Token</label><input class="form-input" id="gumroadToken" type="password" /></div>
+        <div class="form-group"><label class="form-label">Monthly Revenue Goal ($)</label><input class="form-input" id="goalAmount" type="number" placeholder="e.g. 500" value="500" /></div>
+      </div>
+      <button class="btn" onclick="loadGoalTracker()">🎯 Track My Goal</button>
+    </div>
+  </div>
+
+  <div id="results" style="display:none">
+    <!-- HERO PROGRESS -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800">🎯 Monthly Progress</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span style="font-size:11px;color:var(--muted)">Goal: $</span>
+          <input class="form-input" id="goalEdit" type="number" style="width:100px;padding:6px 10px" onchange="updateGoal(this.value)" />
+          <button class="btn btn-outline btn-sm" onclick="loadGoalTracker()">🔄 Refresh</button>
+        </div>
+      </div>
+      <div class="goal-hero">
+        <div class="goal-month" id="goalMonth"></div>
+        <div class="goal-amounts">
+          <div class="goal-current" id="goalCurrent">$0</div>
+          <div class="goal-separator">of</div>
+          <div class="goal-target" id="goalTarget">$500</div>
+        </div>
+        <div class="goal-bar-track"><div class="goal-bar-fill" id="goalBar" style="width:0%"></div></div>
+        <div class="goal-pct" id="goalPct">0% complete</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px" id="goalStatus"></div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">This Month</div><div class="stat-value" style="color:var(--success)" id="stThisMonth">$0</div></div>
+      <div class="stat-card"><div class="stat-label">Last Month</div><div class="stat-value" style="color:var(--teal)" id="stLastMonth">$0</div></div>
+      <div class="stat-card"><div class="stat-label">Sales This Month</div><div class="stat-value" style="color:var(--yellow)" id="stSalesCount">0</div></div>
+      <div class="stat-card"><div class="stat-label">Days Left</div><div class="stat-value" style="color:var(--purple)" id="stDaysLeft">0</div></div>
+    </div>
+
+    <!-- SCENARIOS -->
+    <div class="card">
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;margin-bottom:16px">💡 How to Close the Gap</div>
+      <div class="scenarios" id="scenarios"></div>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-card"><h3>📈 Daily Revenue This Month</h3><canvas id="dailyChart"></canvas></div>
+
+    <!-- MILESTONES -->
+    <div class="card">
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;margin-bottom:16px">🏆 Milestones</div>
+      <div id="milestones"></div>
+    </div>
+  </div>
+</div>
+<script>
+let goalChart;
+
+async function loadGoalTracker() {
+  const token = document.getElementById('gumroadToken').value.trim();
+  const goal = parseFloat(document.getElementById('goalAmount').value) || 500;
+  if (!token) return showSharedToast('Enter your token', 'error');
+  GR.setGumroad(token);
+  localStorage.setItem('revenue_goal', goal);
+
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('goalEdit').value = goal;
+
+  try {
+    const now = new Date();
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().split('T')[0];
+    const lastOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+
+    // Fetch this month
+    let thisSales = [], pageKey = null;
+    do {
+      const url = `/v2/sales?after=${firstOfMonth}${pageKey?'&page_key='+pageKey:''}`;
+      const d = await gumroadAPI(url);
+      if (!d.success) break;
+      thisSales = thisSales.concat(d.sales||[]);
+      pageKey = d.next_page_key || null;
+    } while (pageKey);
+
+    // Fetch last month
+    let lastSales = [], pageKey2 = null;
+    do {
+      const url = `/v2/sales?after=${firstOfLastMonth}&before=${lastOfLastMonth}${pageKey2?'&page_key='+pageKey2:''}`;
+      const d = await gumroadAPI(url);
+      if (!d.success) break;
+      lastSales = lastSales.concat(d.sales||[]);
+      pageKey2 = d.next_page_key || null;
+    } while (pageKey2);
+
+    const paidThis = thisSales.filter(s => !s.refunded && s.price > 0);
+    const paidLast = lastSales.filter(s => !s.refunded && s.price > 0);
+    const thisRev = paidThis.reduce((a,s)=>a+s.price,0)/100;
+    const lastRev = paidLast.reduce((a,s)=>a+s.price,0)/100;
+    const remaining = Math.max(0, goal - thisRev);
+    const pct = Math.min(100, Math.round((thisRev/goal)*100));
+
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+    const dayOfMonth = now.getDate();
+    const daysLeft = daysInMonth - dayOfMonth;
+    const avgSaleValue = paidThis.length ? thisRev/paidThis.length : (paidLast.length ? lastRev/paidLast.length : 10);
+
+    // Update UI
+    document.getElementById('goalMonth').textContent = now.toLocaleString('default',{month:'long',year:'numeric'}).toUpperCase();
+    document.getElementById('goalCurrent').textContent = '$'+thisRev.toFixed(2);
+    document.getElementById('goalTarget').textContent = '$'+goal;
+    document.getElementById('goalBar').style.width = pct+'%';
+    document.getElementById('goalPct').textContent = pct+'% complete';
+    document.getElementById('goalStatus').textContent = remaining > 0 ? `$${remaining.toFixed(2)} remaining — ${daysLeft} days left` : '🎉 Goal reached!';
+    document.getElementById('hStatus').textContent = `${pct}% of $${goal} goal`;
+
+    document.getElementById('stThisMonth').textContent = '$'+thisRev.toFixed(2);
+    document.getElementById('stLastMonth').textContent = '$'+lastRev.toFixed(2);
+    document.getElementById('stSalesCount').textContent = paidThis.length;
+    document.getElementById('stDaysLeft').textContent = daysLeft;
+
+    // Scenarios
+    const salesNeeded = remaining > 0 ? Math.ceil(remaining / avgSaleValue) : 0;
+    const perDay = daysLeft > 0 ? remaining / daysLeft : 0;
+    document.getElementById('scenarios').innerHTML = `
+      <div class="scenario-card"><h4>At current avg ($${avgSaleValue.toFixed(2)})</h4><div class="scenario-val">${salesNeeded}</div><div class="scenario-desc">more sales needed to hit goal</div></div>
+      <div class="scenario-card"><h4>Daily target</h4><div class="scenario-val">$${perDay.toFixed(2)}</div><div class="scenario-desc">revenue per day needed for ${daysLeft} remaining days</div></div>
+      <div class="scenario-card"><h4>If you raise avg to $${(avgSaleValue*1.5).toFixed(2)}</h4><div class="scenario-val">${Math.ceil(remaining/(avgSaleValue*1.5))}</div><div class="scenario-desc">sales needed (consider converting free products)</div></div>`;
+
+    // Daily chart
+    const dailyMap = {};
+    for (let d = 1; d <= dayOfMonth; d++) {
+      dailyMap[String(d).padStart(2,'0')] = 0;
+    }
+    paidThis.forEach(s => {
+      const day = String(new Date(s.created_at).getDate()).padStart(2,'0');
+      if (dailyMap[day] !== undefined) dailyMap[day] += s.price/100;
+    });
+    const labels = Object.keys(dailyMap).map(d => d+'/'+String(now.getMonth()+1).padStart(2,'0'));
+    const data = Object.values(dailyMap);
+
+    if (goalChart) goalChart.destroy();
+    Chart.defaults.color = '#6b6b8a';
+    Chart.defaults.borderColor = '#2a2a3a';
+    goalChart = new Chart(document.getElementById('dailyChart'), {
+      type: 'bar',
+      data: { labels, datasets: [
+        { label: 'Revenue', data, backgroundColor: data.map(v => v > 0 ? 'rgba(81,207,102,0.6)' : 'rgba(42,42,58,0.4)'), borderColor: data.map(v => v > 0 ? '#51cf66' : '#2a2a3a'), borderWidth: 1 },
+        { type: 'line', label: 'Goal pace', data: labels.map((_,i) => ((i+1)/daysInMonth)*goal), borderColor: 'rgba(255,230,109,0.5)', borderDash: [4,4], fill: false, pointRadius: 0, tension: 0 }
+      ]},
+      options: { responsive: true, plugins: { legend: { display: true, labels: { color: '#6b6b8a' } } }, scales: { x: { ticks: { color: '#6b6b8a', maxTicksLimit: 15 }, grid: { color: '#1c1c27' } }, y: { ticks: { color: '#6b6b8a', callback: v => '$'+v }, grid: { color: '#1c1c27' } } } }
+    });
+
+    // Milestones
+    const milestones = [
+      { pct: 25, label: 'First Quarter', icon: '🌱' },
+      { pct: 50, label: 'Halfway There', icon: '⚡' },
+      { pct: 75, label: 'Three Quarters', icon: '🔥' },
+      { pct: 100, label: 'Goal Reached!', icon: '🏆' },
+      { pct: 150, label: 'Overachiever!', icon: '🚀' },
+    ];
+    document.getElementById('milestones').innerHTML = milestones.map(m => {
+      const val = (goal * m.pct/100).toFixed(2);
+      const reached = thisRev >= (goal * m.pct/100);
+      return `<div class="milestone ${reached?'reached':pct>=(m.pct-25)?'next':''}">
+        <div class="milestone-icon">${reached?m.icon:'🔒'}</div>
+        <div class="milestone-text">${m.label} — ${reached?'<span style="color:var(--success)">Reached!</span>':'Locked'}</div>
+        <div class="milestone-val">$${val}</div>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    showSharedToast('Error: '+e.message, 'error');
+  }
+}
+
+function updateGoal(val) {
+  localStorage.setItem('revenue_goal', val);
+  loadGoalTracker();
+}
+
+// Restore saved goal
+const savedGoal = localStorage.getItem('revenue_goal');
+if (savedGoal) document.getElementById('goalAmount').value = savedGoal;
+
+injectThemeToggle(); injectNav('revenue-goal'); injectMobileStyles(); prefillTokens();
+</script>
+</body>
+</html>

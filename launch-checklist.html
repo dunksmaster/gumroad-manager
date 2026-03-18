@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Launch Checklist</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="shared.js"></script>
+<style>
+  :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#ff6b6b;--accent2:#4ecdc4;--text:#f0f0f5;--muted:#6b6b8a;--success:#51cf66;--danger:#ff6b6b;--yellow:#ffe66d;--purple:#667eea;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}.logo span{color:var(--accent);}
+  .container{max-width:800px;margin:0 auto;padding:28px 20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:20px;}
+  .card h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;}
+  .card p{color:var(--muted);font-size:12px;margin-bottom:24px;line-height:1.6;}
+  .form-group{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .form-input,.form-select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;width:100%;max-width:460px;}
+  .form-input:focus,.form-select:focus{border-color:var(--accent);}
+  .btn{background:var(--accent);color:white;border:none;border-radius:10px;padding:12px 28px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
+  .btn:hover{opacity:0.85;transform:translateY(-1px);}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-outline:hover{border-color:var(--accent2);color:var(--accent2);background:transparent;}
+  .btn-sm{padding:7px 14px;font-size:11px;border-radius:7px;}
+
+  /* PROGRESS */
+  .launch-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+  .launch-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;}
+  .launch-progress{display:flex;align-items:center;gap:12px;}
+  .progress-track{background:var(--bg);border-radius:20px;height:8px;width:200px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--yellow));border-radius:20px;transition:width 0.5s ease;}
+  .progress-pct{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--accent2);}
+
+  /* PHASES */
+  .phase{margin-bottom:24px;}
+  .phase-header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface2);border-radius:10px;margin-bottom:12px;cursor:pointer;}
+  .phase-icon{font-size:18px;}
+  .phase-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;flex:1;}
+  .phase-count{font-size:11px;color:var(--muted);}
+  .phase-toggle{font-size:12px;color:var(--muted);transition:transform 0.2s;}
+  .phase-toggle.open{transform:rotate(180deg);}
+
+  /* STEPS */
+  .step{display:flex;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid var(--border);margin-bottom:8px;align-items:flex-start;transition:all 0.2s;cursor:pointer;}
+  .step:hover{border-color:var(--accent2);}
+  .step.done{border-color:rgba(81,207,102,0.3);background:rgba(81,207,102,0.04);}
+  .step.done .step-title{text-decoration:line-through;color:var(--muted);}
+  .step-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+  .step.done .step-check{background:var(--success);border-color:var(--success);color:#0a0a0f;}
+  .step-content{flex:1;}
+  .step-title{font-size:13px;font-weight:500;margin-bottom:3px;transition:all 0.2s;}
+  .step-desc{font-size:11px;color:var(--muted);line-height:1.5;}
+  .step-action{flex-shrink:0;}
+  .step-link{font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;transition:all 0.15s;white-space:nowrap;}
+  .step-link:hover{border-color:var(--accent2);color:var(--accent2);}
+
+  /* PRODUCT SELECT */
+  .product-select-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
+  .product-select-card:hover,.product-select-card.active{border-color:var(--accent);background:rgba(255,107,107,0.06);}
+  .psname{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:2px;}
+  .psmeta{font-size:10px;color:var(--muted);}
+
+  .launch-complete{text-align:center;padding:40px;display:none;}
+  .complete-icon{font-size:64px;margin-bottom:16px;}
+  .complete-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:8px;color:var(--success);}
+</style>
+</head>
+<body>
+<header><div class="logo">Launch <span>Checklist</span></div><div style="font-size:11px;color:var(--muted)" id="hStatus">Not connected</div></header>
+<div class="container">
+
+  <div id="setup">
+    <div class="card">
+      <h2>🚀 Product Launch Checklist</h2>
+      <p>A guided step-by-step workflow to launch any Gumroad product correctly. Each step links directly to the right tool. Never miss a critical step again.</p>
+      <div class="form-group"><label class="form-label">Gumroad API Token</label><input class="form-input" id="gumroadToken" type="password" /></div>
+      <button class="btn" onclick="loadLaunch()">🚀 Start Checklist</button>
+    </div>
+  </div>
+
+  <div id="productPicker" style="display:none">
+    <div class="card">
+      <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:8px">Select a product to launch</div>
+      <p>Pick an existing product to audit against the checklist, or start fresh.</p>
+      <div id="productPickerList" style="max-height:360px;overflow-y:auto;margin-bottom:20px"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn" onclick="startChecklist(null)">🆕 New Product (blank checklist)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="checklist" style="display:none">
+    <div class="card">
+      <div class="launch-header">
+        <div>
+          <div class="launch-title" id="launchProductName">Product Launch</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px" id="launchSubtitle"></div>
+        </div>
+        <div class="launch-progress">
+          <div class="progress-track"><div class="progress-fill" id="launchProgressBar" style="width:0%"></div></div>
+          <div class="progress-pct" id="launchProgressPct">0%</div>
+          <button class="btn btn-outline btn-sm" onclick="resetChecklist()">↩ Reset</button>
+        </div>
+      </div>
+
+      <div id="phasesContainer"></div>
+
+      <div class="launch-complete" id="launchComplete">
+        <div class="complete-icon">🎉</div>
+        <div class="complete-title">Launch Complete!</div>
+        <div style="color:var(--muted);font-size:13px;margin-bottom:24px">You've completed all launch steps. Your product is ready to sell!</div>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <a href="linkedin.html" style="text-decoration:none"><button class="btn btn-outline btn-sm">💼 Write LinkedIn Post</button></a>
+          <a href="discount-codes.html" style="text-decoration:none"><button class="btn btn-outline btn-sm">🎟️ Create Launch Discount</button></a>
+          <button class="btn btn-sm" onclick="resetChecklist()">🚀 Launch Another Product</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let selectedProduct = null;
+let checkState = {};
+
+const PHASES = [
+  {
+    id: 'content', icon: '✍️', title: 'Content & Description',
+    steps: [
+      { id: 'title', title: 'Write a clear, compelling title', desc: 'Max 60 chars. Lead with the benefit, not the feature. No "Free" prefix.', action: 'AI Rewriter', link: 'rewriter.html' },
+      { id: 'desc', title: 'Write a detailed description (200+ words)', desc: 'Cover: what it is, who it\'s for, what they get, why it\'s valuable.', action: 'AI Rewriter', link: 'rewriter.html' },
+      { id: 'summary', title: 'Add a one-line summary', desc: 'This shows below the title on your product page. Make it punchy.', action: 'Dashboard', link: 'index.html' },
+    ]
+  },
+  {
+    id: 'visual', icon: '🖼️', title: 'Visuals & Branding',
+    steps: [
+      { id: 'thumbnail', title: 'Upload a thumbnail image', desc: 'Minimum 1280×720px. Bright, readable text on image. No clutter.', action: 'Gumroad', link: 'https://gumroad.com' },
+      { id: 'preview', title: 'Add a preview / sample file', desc: 'Give buyers a taste before they buy. Increases conversions significantly.', action: 'Gumroad', link: 'https://gumroad.com' },
+    ]
+  },
+  {
+    id: 'seo', icon: '🏷️', title: 'SEO & Discoverability',
+    steps: [
+      { id: 'tags', title: 'Add 5+ relevant tags', desc: 'Use specific niche tags. Think about what your buyer would search for.', action: 'Category Manager', link: 'categories.html' },
+      { id: 'permalink', title: 'Set a clean permalink URL', desc: 'e.g. /l/crypto-guide instead of /l/xKj92. Easier to share and remember.', action: 'Gumroad', link: 'https://gumroad.com' },
+    ]
+  },
+  {
+    id: 'pricing', icon: '💰', title: 'Pricing & Offer',
+    steps: [
+      { id: 'price', title: 'Set the right price', desc: 'Check your competitor\'s pricing. Don\'t underprice — it signals low value.', action: 'Competitor Checker', link: 'competitor.html' },
+      { id: 'discount', title: 'Create a launch discount code', desc: 'Offer 20-30% off for the first 48-72 hours to drive early sales.', action: 'Discount Codes', link: 'discount-codes.html' },
+      { id: 'pwyw', title: 'Consider "pay what you want" option', desc: 'Set a minimum price and let buyers pay more. Can increase revenue.', action: 'Gumroad', link: 'https://gumroad.com' },
+    ]
+  },
+  {
+    id: 'promotion', icon: '📣', title: 'Promotion & Marketing',
+    steps: [
+      { id: 'linkedin', title: 'Write a LinkedIn launch post', desc: 'Share the story behind the product. Personal posts outperform promo posts.', action: 'LinkedIn Generator', link: 'linkedin.html' },
+      { id: 'email', title: 'Email your existing buyers', desc: 'Tell your previous buyers about the new product — they\'re your warmest audience.', action: 'Email Campaign', link: 'email-campaign.html' },
+      { id: 'social', title: 'Share on other social channels', desc: 'Twitter/X, relevant Facebook groups, Reddit communities, Discord servers.', action: 'Mark Done', link: null },
+    ]
+  },
+  {
+    id: 'publish', icon: '🚀', title: 'Final Checks & Publish',
+    steps: [
+      { id: 'test', title: 'Do a test purchase', desc: 'Use Gumroad\'s test mode to complete a full purchase and check the buyer experience.', action: 'Gumroad', link: 'https://gumroad.com' },
+      { id: 'receipt', title: 'Customize the purchase receipt', desc: 'Add a thank-you note and any onboarding instructions in the receipt email.', action: 'Gumroad', link: 'https://gumroad.com' },
+      { id: 'publish', title: 'Publish the product', desc: 'Toggle the product live. Double-check all settings before going public.', action: 'Bulk Publish', link: 'bulk-publish.html' },
+      { id: 'health', title: 'Run a Store Health Check', desc: 'Make sure your new product passes all health criteria.', action: 'Health Score', link: 'store-health.html' },
+    ]
+  }
+];
+
+async function loadLaunch() {
+  const token = document.getElementById('gumroadToken').value.trim();
+  if (!token) return showSharedToast('Enter your token', 'error');
+  GR.setGumroad(token);
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('productPicker').style.display = 'block';
+
+  try {
+    const res = await gumroadAPI('/v2/products');
+    if (!res.success) throw new Error('Failed to load');
+    const prods = res.products;
+    document.getElementById('hStatus').textContent = `${prods.length} products`;
+    document.getElementById('productPickerList').innerHTML = prods.map(p => `
+      <div class="product-select-card" onclick="startChecklist('${p.id}')">
+        <div class="psname">${p.name.substring(0,60)}${p.name.length>60?'...':''}</div>
+        <div class="psmeta">${p.price?'$'+(p.price/100).toFixed(2):'Free'} · ${p.published?'Published':'Unpublished'} · ${p.sales_count||0} sales</div>
+      </div>`).join('');
+    window._allProducts = prods;
+  } catch(e) { showSharedToast('Error: '+e.message,'error'); }
+}
+
+function startChecklist(productId) {
+  selectedProduct = productId ? (window._allProducts||[]).find(p=>p.id===productId) : null;
+  document.getElementById('productPicker').style.display = 'none';
+  document.getElementById('checklist').style.display = 'block';
+
+  // Load saved state
+  const key = 'launch_state_' + (productId||'new');
+  checkState = JSON.parse(localStorage.getItem(key)||'{}');
+
+  document.getElementById('launchProductName').textContent = selectedProduct ? selectedProduct.name.substring(0,50) : '🆕 New Product';
+  document.getElementById('launchSubtitle').textContent = selectedProduct ? `Auditing existing product against launch standards` : `Starting a new product from scratch`;
+
+  renderPhases();
+}
+
+function renderPhases() {
+  const container = document.getElementById('phasesContainer');
+  container.innerHTML = PHASES.map((phase, pi) => {
+    const doneCount = phase.steps.filter(s => checkState[s.id]).length;
+    return `
+    <div class="phase">
+      <div class="phase-header" onclick="togglePhase(${pi})">
+        <div class="phase-icon">${phase.icon}</div>
+        <div class="phase-title">${phase.title}</div>
+        <div class="phase-count">${doneCount}/${phase.steps.length} done</div>
+        <div class="phase-toggle" id="phtoggle-${pi}">▼</div>
+      </div>
+      <div id="phase-steps-${pi}">
+        ${phase.steps.map(s => renderStep(s)).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  updateProgress();
+}
+
+function renderStep(s) {
+  const done = checkState[s.id];
+  return `
+  <div class="step ${done?'done':''}" id="step-${s.id}" onclick="toggleStep('${s.id}')">
+    <div class="step-check">${done?'✓':''}</div>
+    <div class="step-content">
+      <div class="step-title">${s.title}</div>
+      <div class="step-desc">${s.desc}</div>
+    </div>
+    ${s.link ? `<div class="step-action" onclick="event.stopPropagation()"><a href="${s.link}" ${s.link.startsWith('http')?'target="_blank"':''} style="text-decoration:none"><span class="step-link">${s.action} →</span></a></div>` : ''}
+  </div>`;
+}
+
+function toggleStep(id) {
+  checkState[id] = !checkState[id];
+  const key = 'launch_state_' + (selectedProduct?.id||'new');
+  localStorage.setItem(key, JSON.stringify(checkState));
+  const el = document.getElementById(`step-${id}`);
+  const s = PHASES.flatMap(p=>p.steps).find(s=>s.id===id);
+  el.outerHTML = renderStep(s);
+  // Re-attach onclick
+  document.getElementById(`step-${id}`).addEventListener('click', () => toggleStep(id));
+  updateProgress();
+}
+
+function togglePhase(pi) {
+  const steps = document.getElementById(`phase-steps-${pi}`);
+  const toggle = document.getElementById(`phtoggle-${pi}`);
+  const hidden = steps.style.display === 'none';
+  steps.style.display = hidden ? 'block' : 'none';
+  toggle.classList.toggle('open', hidden);
+}
+
+function updateProgress() {
+  const allSteps = PHASES.flatMap(p=>p.steps);
+  const done = allSteps.filter(s=>checkState[s.id]).length;
+  const pct = Math.round((done/allSteps.length)*100);
+  document.getElementById('launchProgressBar').style.width = pct+'%';
+  document.getElementById('launchProgressPct').textContent = pct+'%';
+  // Update phase counts
+  PHASES.forEach((phase, pi) => {
+    const doneCount = phase.steps.filter(s=>checkState[s.id]).length;
+    const countEl = document.querySelector(`#phasesContainer .phase:nth-child(${pi+1}) .phase-count`);
+    if (countEl) countEl.textContent = `${doneCount}/${phase.steps.length} done`;
+  });
+  if (pct === 100) document.getElementById('launchComplete').style.display = 'block';
+}
+
+function resetChecklist() {
+  const key = 'launch_state_' + (selectedProduct?.id||'new');
+  localStorage.removeItem(key);
+  checkState = {};
+  document.getElementById('launchComplete').style.display = 'none';
+  renderPhases();
+}
+
+injectThemeToggle(); injectNav('launch-checklist'); injectMobileStyles(); prefillTokens();
+</script>
+</body>
+</html>

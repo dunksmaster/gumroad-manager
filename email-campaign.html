@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Campaign Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="shared.js"></script>
+<style>
+  :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#667eea;--text:#f0f0f5;--muted:#6b6b8a;--success:#51cf66;--danger:#ff6b6b;--yellow:#ffe66d;--teal:#4ecdc4;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}.logo span{color:var(--accent);}
+  .container{max-width:960px;margin:0 auto;padding:28px 20px;}
+  .layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;margin-bottom:16px;}
+  .card h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:8px;}
+  .card h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:14px;}
+  .card p{color:var(--muted);font-size:11px;margin-bottom:20px;line-height:1.6;}
+  .form-group{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+  .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .form-input,.form-select,.form-textarea{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color 0.2s;width:100%;}
+  .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+  .form-textarea{resize:vertical;min-height:140px;line-height:1.7;}
+  .btn{background:var(--accent);color:white;border:none;border-radius:10px;padding:11px 22px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all 0.2s;}
+  .btn:hover{opacity:0.85;transform:translateY(-1px);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);background:transparent;}
+  .btn-success{background:var(--success);color:#0a0a0f;}
+  .btn-danger{background:var(--danger);color:white;}
+  .btn-sm{padding:7px 14px;font-size:11px;border-radius:7px;}
+
+  .audience-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;}
+  .audience-card:hover,.audience-card.selected{border-color:var(--accent);background:rgba(102,126,234,0.08);}
+  .audience-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:3px;}
+  .audience-desc{font-size:11px;color:var(--muted);}
+  .audience-count{font-size:11px;color:var(--teal);margin-top:4px;}
+
+  .preview-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;min-height:200px;}
+  .preview-subject{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+  .preview-body{font-size:12px;line-height:1.8;white-space:pre-wrap;color:var(--text);}
+
+  .template-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+  .template-pill{padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:11px;text-align:center;transition:all 0.15s;}
+  .template-pill:hover,.template-pill.active{border-color:var(--accent);color:var(--accent);background:rgba(102,126,234,0.08);}
+
+  .send-confirm{background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.3);border-radius:12px;padding:20px;margin-top:16px;display:none;}
+  .send-confirm h4{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:8px;}
+
+  .spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+  .stat-mini{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+  .stat-mini-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--teal);}
+  .stat-mini-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:4px;}
+
+  .warning-box{background:rgba(255,230,109,0.08);border:1px solid rgba(255,230,109,0.3);border-radius:10px;padding:14px;font-size:11px;color:var(--yellow);line-height:1.6;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<header><div class="logo">Email <span>Campaign Builder</span></div><div style="font-size:11px;color:var(--muted)" id="hStatus">Not connected</div></header>
+<div class="container">
+  <div id="setup">
+    <div class="card" style="max-width:480px;margin:0 auto">
+      <h2>📧 Email Campaign Builder</h2>
+      <p>Send broadcast emails to your Gumroad buyers. Target by product, write your message, preview it, and send — all from here.</p>
+      <div class="form-group"><label class="form-label">Gumroad API Token</label><input class="form-input" id="gumroadToken" type="password" /></div>
+      <div class="form-group"><label class="form-label">Anthropic API Key (for AI writing)</label><input class="form-input" id="anthropicKey" type="password" placeholder="sk-ant-..." /></div>
+      <button class="btn" onclick="loadEmailBuilder()">📧 Load Email Builder</button>
+    </div>
+  </div>
+
+  <div id="mainContent" style="display:none">
+    <div class="stat-row">
+      <div class="stat-mini"><div class="stat-mini-val" id="stProducts">0</div><div class="stat-mini-label">Products</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" id="stTotalBuyers">0</div><div class="stat-mini-label">Total Buyers</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" id="stPaid">0</div><div class="stat-mini-label">Paid Products</div></div>
+    </div>
+
+    <div class="warning-box">⚠️ Gumroad's email API sends to your actual buyers. Always test with a small audience first. Respect your buyers — don't over-email. Gumroad recommends no more than 1-2 emails per week per product.</div>
+
+    <div class="layout">
+      <!-- LEFT: Compose -->
+      <div>
+        <div class="card">
+          <h3>📝 Compose Email</h3>
+
+          <div class="form-group">
+            <label class="form-label">Send to (audience)</label>
+            <select class="form-select" id="audienceSelect">
+              <option value="">-- Select audience --</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email Subject</label>
+            <input class="form-input" id="emailSubject" placeholder="e.g. Exclusive discount just for you..." oninput="updatePreview()" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="display:flex;justify-content:space-between">
+              Email Body
+              <button class="btn btn-outline btn-sm" onclick="aiWriteEmail()" style="font-size:10px;padding:4px 10px">✨ AI Write</button>
+            </label>
+            <textarea class="form-textarea" id="emailBody" placeholder="Write your email here..." oninput="updatePreview()"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Templates</label>
+            <div class="template-grid">
+              <div class="template-pill" onclick="applyTemplate('promo')">🎟️ Promo / Sale</div>
+              <div class="template-pill" onclick="applyTemplate('newproduct')">🆕 New Product</div>
+              <div class="template-pill" onclick="applyTemplate('thankyou')">🙏 Thank You</div>
+              <div class="template-pill" onclick="applyTemplate('tips')">💡 Tips & Value</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-outline btn-sm" onclick="updatePreview()">👁️ Preview</button>
+            <button class="btn btn-sm" onclick="showSendConfirm()">📤 Send Email</button>
+          </div>
+
+          <div class="send-confirm" id="sendConfirm">
+            <h4>⚠️ Ready to send?</h4>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:14px" id="sendSummary"></div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-success btn-sm" onclick="sendEmail()">✅ Yes, Send Now</button>
+              <button class="btn btn-outline btn-sm" onclick="document.getElementById('sendConfirm').style.display='none'">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Preview + Products -->
+      <div>
+        <div class="card">
+          <h3>👁️ Email Preview</h3>
+          <div class="preview-card">
+            <div class="preview-subject" id="previewSubject">Subject will appear here</div>
+            <div class="preview-body" id="previewBody">Your email content will appear here as you type...</div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:10px" id="wordCount"></div>
+        </div>
+
+        <div class="card">
+          <h3>📦 Your Products (audience sources)</h3>
+          <div id="productAudienceList" style="max-height:320px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let products = [];
+let salesByProduct = {};
+
+async function loadEmailBuilder() {
+  const token = document.getElementById('gumroadToken').value.trim();
+  const antKey = document.getElementById('anthropicKey').value.trim();
+  if (!token) return showSharedToast('Enter your token', 'error');
+  GR.setGumroad(token);
+  if (antKey) GR.setAnthropic(antKey);
+
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+
+  try {
+    const res = await gumroadAPI('/v2/products');
+    if (!res.success) throw new Error('Failed to load');
+    products = res.products.filter(p => p.published);
+
+    const paid = products.filter(p => p.price > 0);
+    const totalBuyers = products.reduce((a,p) => a + parseInt(p.sales_count||0), 0);
+
+    document.getElementById('stProducts').textContent = products.length;
+    document.getElementById('stTotalBuyers').textContent = totalBuyers;
+    document.getElementById('stPaid').textContent = paid.length;
+    document.getElementById('hStatus').textContent = `${products.length} products, ~${totalBuyers} buyers`;
+
+    // Build audience select
+    const sel = document.getElementById('audienceSelect');
+    sel.innerHTML = '<option value="">-- Select audience --</option>' +
+      products.map(p => `<option value="${p.id}">${p.name.substring(0,45)} (${p.sales_count||0} buyers)</option>`).join('');
+
+    // Product list
+    document.getElementById('productAudienceList').innerHTML = products.map(p => `
+      <div class="audience-card" onclick="selectAudience('${p.id}', this)">
+        <div class="audience-name">${p.name.substring(0,50)}${p.name.length>50?'...':''}</div>
+        <div class="audience-desc">${p.price?(('$'+(p.price/100).toFixed(2))):'Free'}</div>
+        <div class="audience-count">~${p.sales_count||0} buyers</div>
+      </div>`).join('');
+  } catch(e) {
+    showSharedToast('Error: '+e.message, 'error');
+  }
+}
+
+function selectAudience(id, el) {
+  document.querySelectorAll('.audience-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('audienceSelect').value = id;
+}
+
+function updatePreview() {
+  const subject = document.getElementById('emailSubject').value || 'Subject will appear here';
+  const body = document.getElementById('emailBody').value || 'Your email content will appear here...';
+  document.getElementById('previewSubject').textContent = subject;
+  document.getElementById('previewBody').textContent = body;
+  const words = body.split(/\s+/).filter(Boolean).length;
+  document.getElementById('wordCount').textContent = `${words} words · ~${Math.ceil(words/200)} min read`;
+}
+
+const templates = {
+  promo: { subject: '🎟️ Exclusive discount — {X}% off for you', body: `Hi there,\n\nI wanted to reach out personally with an exclusive offer just for you.\n\nAs a thank-you for your support, I'm offering {X}% off my latest product: {PRODUCT NAME}.\n\nUse code: {CODE} at checkout.\n\nThis offer expires in 48 hours — grab it here: {LINK}\n\nThank you for being part of this community.\n\nBest,\n{YOUR NAME}` },
+  newproduct: { subject: '🆕 Just launched — {PRODUCT NAME}', body: `Hi there,\n\nExcited to share something new with you today.\n\nI just launched {PRODUCT NAME} — and I think you'll love it.\n\nHere's what you get:\n• {BENEFIT 1}\n• {BENEFIT 2}\n• {BENEFIT 3}\n\nGet it here: {LINK}\n\nAs always, thank you for your support.\n\n{YOUR NAME}` },
+  thankyou: { subject: '🙏 Thank you for your support', body: `Hi there,\n\nI just wanted to take a moment to say thank you.\n\nYour support means a lot — it's what keeps me creating.\n\nAs a small token of appreciation, here's a free resource I think you'll find valuable: {LINK}\n\nThank you for being part of this journey.\n\nWith gratitude,\n{YOUR NAME}` },
+  tips: { subject: '💡 {X} tips to get more from {PRODUCT}', body: `Hi there,\n\nI wanted to share {X} quick tips that will help you get even more value from {PRODUCT}:\n\n1. {TIP 1}\n\n2. {TIP 2}\n\n3. {TIP 3}\n\nHope these help! Reply and let me know which one you found most useful.\n\n{YOUR NAME}` },
+};
+
+function applyTemplate(type) {
+  document.querySelectorAll('.template-pill').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  const t = templates[type];
+  document.getElementById('emailSubject').value = t.subject;
+  document.getElementById('emailBody').value = t.body;
+  updatePreview();
+}
+
+async function aiWriteEmail() {
+  const productId = document.getElementById('audienceSelect').value;
+  const product = products.find(p => p.id === productId);
+  if (!product) return showSharedToast('Select an audience/product first', 'error');
+  if (!GR.getAnthropic()) return showSharedToast('Add Anthropic API key for AI writing', 'error');
+
+  const btn = event.target;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+
+  const prompt = `Write a short, personal Gumroad buyer email for this product:
+Product: "${product.name}"
+Price: ${product.price ? '$'+(product.price/100).toFixed(2) : 'Free'}
+
+Write a value-add email (not a hard sell) — share a tip, insight or bonus related to the product topic. 150-200 words max. Warm, personal tone. End with a soft CTA to check out a related resource or leave a review.
+
+Format as JSON: {"subject": "email subject here", "body": "email body here"}`;
+
+  try {
+    const text = await claudeAPI(prompt, 500);
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    document.getElementById('emailSubject').value = parsed.subject || '';
+    document.getElementById('emailBody').value = parsed.body || '';
+    updatePreview();
+    showSharedToast('✅ AI email written!', 'success');
+  } catch(e) {
+    showSharedToast('AI writing failed — check your Anthropic key', 'error');
+  }
+  btn.disabled = false; btn.textContent = '✨ AI Write';
+}
+
+function showSendConfirm() {
+  const productId = document.getElementById('audienceSelect').value;
+  const product = products.find(p => p.id === productId);
+  const subject = document.getElementById('emailSubject').value;
+  const body = document.getElementById('emailBody').value;
+
+  if (!productId) return showSharedToast('Select an audience first', 'error');
+  if (!subject) return showSharedToast('Add a subject line', 'error');
+  if (!body || body.length < 20) return showSharedToast('Email body is too short', 'error');
+
+  document.getElementById('sendSummary').textContent = `Sending "${subject}" to ~${product.sales_count||0} buyers of "${product.name.substring(0,40)}"`;
+  document.getElementById('sendConfirm').style.display = 'block';
+  document.getElementById('sendConfirm').scrollIntoView({behavior:'smooth'});
+}
+
+async function sendEmail() {
+  const productId = document.getElementById('audienceSelect').value;
+  const subject = document.getElementById('emailSubject').value;
+  const body = document.getElementById('emailBody').value;
+
+  confirmAction(`Send this email to all buyers of this product?`, async () => {
+    try {
+      // Gumroad email API
+      const res = await gumroadAPI(`/v2/products/${productId}/notify_customers`, 'POST', {
+        subject,
+        body
+      });
+      if (res.success) {
+        showSharedToast('✅ Email sent successfully!', 'success');
+        document.getElementById('sendConfirm').style.display = 'none';
+      } else {
+        // Gumroad may not support this endpoint on all plans
+        showSharedToast('Note: Email API may require a Gumroad paid plan. Check your Gumroad dashboard to send emails.', 'error');
+      }
+    } catch(e) {
+      showSharedToast('Error: '+e.message, 'error');
+    }
+  });
+}
+
+injectThemeToggle(); injectNav('email-campaign'); injectMobileStyles(); prefillTokens();
+</script>
+</body>
+</html>
