@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gumroad Competitor Checker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --border: #2a2a3a;
+    --accent: #ff6b6b;
+    --accent2: #4ecdc4;
+    --accent3: #ffe66d;
+    --purple: #667eea;
+    --text: #f0f0f5;
+    --muted: #6b6b8a;
+    --success: #51cf66;
+    --danger: #ff6b6b;
+    --you: #4ecdc4;
+    --them: #ff6b6b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(255,107,107,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(78,205,196,0.02) 1px, transparent 1px);
+    background-size: 50px 50px; pointer-events: none; z-index: 0;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border); padding: 18px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; }
+  .logo span { color: var(--accent); }
+  .back-btn {
+    font-size: 12px; color: var(--muted); cursor: pointer;
+    background: none; border: 1px solid var(--border); border-radius: 7px;
+    padding: 6px 14px; font-family: 'DM Mono', monospace; transition: all 0.2s;
+  }
+  .back-btn:hover { color: var(--text); border-color: var(--accent2); }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px; position: relative; z-index: 1; }
+
+  /* SETUP */
+  .setup-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px; margin-bottom: 20px;
+  }
+  .setup-card h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .setup-card p { color: var(--muted); font-size: 12px; margin-bottom: 28px; line-height: 1.7; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+  .form-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .form-input {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 12px; outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  .form-input:focus { border-color: var(--accent); }
+
+  .btn {
+    background: var(--accent); color: white; border: none; border-radius: 10px;
+    padding: 13px 28px; font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 13px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px;
+  }
+  .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: transparent; }
+  .btn-purple { background: var(--purple); }
+  .btn-sm { padding: 7px 14px; font-size: 11px; border-radius: 7px; }
+
+  /* LOADING */
+  #loading-screen { display: none; text-align: center; padding: 80px 20px; }
+  .loading-icon { font-size: 48px; margin-bottom: 16px; animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  .loading-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+  .loading-sub { color: var(--muted); font-size: 12px; }
+  .progress-bar-wrap { background: var(--surface); border-radius: 20px; height: 4px; overflow: hidden; margin: 20px auto; max-width: 300px; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 20px; transition: width 0.5s; width: 0%; }
+
+  /* RESULTS */
+  #results-screen { display: none; }
+
+  /* VS HEADER */
+  .vs-header {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px 28px; margin-bottom: 20px;
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center;
+  }
+  .vs-side { }
+  .vs-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .vs-label.you { color: var(--you); }
+  .vs-label.them { color: var(--them); }
+  .vs-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+  .vs-badge { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .vs-divider { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--muted); text-align: center; }
+
+  /* STATS GRID */
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+  .compare-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px; overflow: hidden;
+  }
+  .compare-card h3 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+  .compare-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;
+  }
+  .compare-col { }
+  .compare-col-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .compare-col-label.you { color: var(--you); }
+  .compare-col-label.them { color: var(--them); }
+  .compare-val { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; }
+  .compare-val.you { color: var(--you); }
+  .compare-val.them { color: var(--them); }
+  .compare-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* BAR COMPARE */
+  .bar-compare { margin-bottom: 10px; }
+  .bar-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; display: flex; justify-content: space-between; }
+  .bar-track { background: var(--bg); border-radius: 20px; height: 6px; overflow: hidden; margin-bottom: 3px; }
+  .bar-fill-you { height: 100%; background: var(--you); border-radius: 20px; transition: width 1s ease; }
+  .bar-fill-them { height: 100%; background: var(--them); border-radius: 20px; transition: width 1s ease; }
+
+  /* TAGS */
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-chip {
+    font-size: 10px; padding: 3px 10px; border-radius: 12px;
+    border: 1px solid var(--border); color: var(--muted); background: var(--surface2);
+  }
+  .tag-chip.you { border-color: rgba(78,205,196,0.4); color: var(--you); background: rgba(78,205,196,0.08); }
+  .tag-chip.them { border-color: rgba(255,107,107,0.4); color: var(--them); background: rgba(255,107,107,0.08); }
+  .tag-chip.shared { border-color: rgba(255,230,109,0.4); color: var(--accent3); background: rgba(255,230,109,0.08); }
+
+  /* GAP TABLE */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
+  .table-header { padding: 14px 20px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .table-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 10px 16px; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface2); }
+  td { padding: 11px 16px; font-size: 11px; border-bottom: 1px solid rgba(42,42,58,0.4); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(28,28,39,0.6); }
+
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 12px; }
+  .badge-free { background: rgba(107,107,138,0.15); color: var(--muted); }
+  .badge-paid { background: rgba(255,230,109,0.12); color: var(--accent3); }
+  .badge-gap { background: rgba(255,107,107,0.12); color: var(--danger); }
+  .badge-win { background: rgba(81,207,102,0.12); color: var(--success); }
+
+  /* AI RECOMMENDATIONS */
+  .ai-card {
+    background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(78,205,196,0.05));
+    border: 1px solid rgba(102,126,234,0.3); border-radius: 16px; padding: 28px; margin-bottom: 20px;
+  }
+  .ai-card h3 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; margin-bottom: 16px; color: var(--purple); display: flex; align-items: center; gap: 8px; }
+  .ai-loading { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ai-content { font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; }
+  .action-point {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 10px; font-size: 12px; line-height: 1.6;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .action-point .ap-num {
+    background: rgba(102,126,234,0.2); color: var(--purple);
+    border-radius: 50%; width: 22px; height: 22px; min-width: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 11px;
+  }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 12px; z-index: 9999; transform: translateY(80px); opacity: 0; transition: all 0.3s; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--success); }
+  .toast.error { border-color: var(--danger); }
+
+  .section-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 16px; }
+  .section-divider span { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .section-divider::before, .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .product-row-name { font-size: 12px; color: var(--text); max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .product-row-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Gumroad <span>Competitor Checker</span></div>
+  <button class="back-btn" onclick="window.location='index.html'">← Back to Dashboard</button>
+</header>
+
+<div class="container">
+
+  <!-- SETUP -->
+  <div id="setup-screen">
+    <div class="setup-card">
+      <h2>🕵️ Competitor Analysis</h2>
+      <p>Enter your Gumroad token and a competitor's profile URL. The tool pulls all their public products, compares them against yours, finds the gaps, and gives you AI-powered action points to outcompete them.</p>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Your Gumroad API Token</label>
+          <input class="form-input" id="myToken" type="password" placeholder="Your access token..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Anthropic API Key (for AI insights)</label>
+          <input class="form-input" id="anthropicKey" type="password" placeholder="sk-ant-..." />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:24px">
+        <label class="form-label">Competitor's Gumroad Profile URL</label>
+        <input class="form-input" id="competitorUrl" placeholder="e.g. https://gumroad.com/competitors or https://competitor.gumroad.com" style="max-width:600px" />
+        <div style="font-size:10px;color:var(--muted);margin-top:6px">Works with gumroad.com/username or username.gumroad.com format</div>
+      </div>
+
+      <button class="btn" id="analyzeBtn" onclick="analyze()">🔍 Analyze Competitor</button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loading-screen">
+    <div class="loading-icon">🕵️</div>
+    <div class="loading-title" id="loadingTitle">Fetching data...</div>
+    <div class="loading-sub" id="loadingSub">This will take a few seconds</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="loadingBar"></div></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results-screen">
+
+    <!-- VS HEADER -->
+    <div class="vs-header">
+      <div class="vs-side">
+        <div class="vs-label you">● You</div>
+        <div class="vs-name" id="myName">Your Store</div>
+        <div class="vs-badge" id="myBadge"></div>
+      </div>
+      <div class="vs-divider">VS</div>
+      <div class="vs-side" style="text-align:right">
+        <div class="vs-label them" style="text-align:right">● Competitor</div>
+        <div class="vs-name" id="themName">Their Store</div>
+        <div class="vs-badge" id="themBadge"></div>
+      </div>
+    </div>
+
+    <!-- AI RECOMMENDATIONS -->
+    <div class="ai-card">
+      <h3>✨ AI Strategic Action Points</h3>
+      <div id="aiOutput"><div class="ai-loading"><div class="spinner"></div> Analyzing and generating recommendations...</div></div>
+    </div>
+
+    <!-- STATS COMPARISON -->
+    <div class="section-divider"><span>📊 Head-to-Head Stats</span></div>
+    <div class="stats-grid">
+
+      <div class="compare-card">
+        <h3>📦 Products</h3>
+        <div class="compare-row">
+          <div class="compare-col">
+            <div class="compare-col-label you">You</div>
+            <div class="compare-val you" id="myProductCount">0</div>
+            <div class="compare-sub" id="myFreeCount"></div>
+          </div>
+          <div class="compare-col">
+            <div class="compare-col-label them">Them</div>
+            <div class="compare-val them" id="themProductCount">0</div>
+            <div class="compare-sub" id="themFreeCount"></div>
+          </div>
+        </div>
+        <div class="bar-compare" id="productBar"></div>
+      </div>
+
+      <div class="compare-card">
+        <h3>💰 Pricing Strategy</h3>
+        <div class="compare-row">
+          <div class="compare-col">
+            <div class="compare-col-label you">Your Avg Price</div>
+            <div class="compare-val you" id="myAvgPrice">—</div>
+            <div class="compare-sub" id="myPaidCount"></div>
+          </div>
+          <div class="compare-col">
+            <div class="compare-col-label them">Their Avg Price</div>
+            <div class="compare-val them" id="themAvgPrice">—</div>
+            <div class="compare-sub" id="themPaidCount"></div>
+          </div>
+        </div>
+        <div class="bar-compare" id="priceBar"></div>
+      </div>
+
+    </div>
+
+    <!-- TAGS COMPARISON -->
+    <div class="section-divider"><span>🏷️ Tags & Categories</span></div>
+    <div class="compare-card" style="margin-bottom:20px">
+      <h3>Tag Overlap Analysis</h3>
+      <div style="margin-bottom:16px">
+        <div class="form-label" style="margin-bottom:8px">🟡 Shared tags (both use)</div>
+        <div class="tag-cloud" id="sharedTags"></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div class="form-label" style="margin-bottom:8px;color:var(--you)">🟢 Only you use</div>
+        <div class="tag-cloud" id="myUniqueTags"></div>
+      </div>
+      <div>
+        <div class="form-label" style="margin-bottom:8px;color:var(--them)">🔴 Only they use (opportunity!)</div>
+        <div class="tag-cloud" id="themUniqueTags"></div>
+      </div>
+    </div>
+
+    <!-- GAP ANALYSIS -->
+    <div class="section-divider"><span>🎯 Gap Analysis — What They Have That You Don't</span></div>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <div class="table-header">
+        <div class="table-title">Products you're missing</div>
+        <div style="font-size:11px;color:var(--muted)" id="gapCount">0 gaps found</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Their Product</th>
+            <th>Price</th>
+            <th>Opportunity</th>
+          </tr>
+        </thead>
+        <tbody id="gapTable"></tbody>
+      </table>
+    </div>
+
+    <!-- THEIR PRODUCTS -->
+    <div class="section-divider"><span>🔴 Their Full Product List</span></div>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <div class="table-header">
+        <div class="table-title">Competitor products</div>
+        <div style="font-size:11px;color:var(--muted)" id="themProdCount">0 products</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product Name</th>
+            <th>Price</th>
+            <th>Tags</th>
+          </tr>
+        </thead>
+        <tbody id="themTable"></tbody>
+      </table>
+    </div>
+
+    <div style="text-align:center;padding:20px 0">
+      <button class="btn btn-outline" onclick="resetAll()">🔄 Analyze Another Competitor</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let myProducts = [];
+let themProducts = [];
+let myToken = '';
+let anthropicKey = '';
+
+// ── MAIN ──────────────────────────────────────────────
+async function analyze() {
+  myToken = document.getElementById('myToken').value.trim();
+  anthropicKey = document.getElementById('anthropicKey').value.trim();
+  const compUrl = document.getElementById('competitorUrl').value.trim();
+
+  if (!myToken) return showToast('Enter your Gumroad token', 'error');
+  if (!compUrl) return showToast('Enter competitor URL', 'error');
+
+  const username = extractUsername(compUrl);
+  if (!username) return showToast('Could not parse competitor URL', 'error');
+
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'block';
+
+  try {
+    setLoading('Fetching your products...', 20);
+    const myRes = await fetch(`https://api.gumroad.com/v2/products?access_token=${encodeURIComponent(myToken)}`);
+    const myData = await myRes.json();
+    if (!myData.success) throw new Error('Failed to load your products');
+    myProducts = myData.products;
+
+    setLoading('Fetching competitor products...', 50);
+    themProducts = await fetchCompetitorProducts(username);
+
+    if (!themProducts.length) throw new Error(`No public products found for "${username}". Check the URL and try again.`);
+
+    setLoading('Running analysis...', 80);
+    await sleep(500);
+
+    setLoading('Generating AI insights...', 95);
+    renderResults(username);
+
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('results-screen').style.display = 'block';
+
+    if (anthropicKey) generateAIInsights();
+    else document.getElementById('aiOutput').innerHTML = '<div style="color:var(--muted);font-size:12px">Add an Anthropic API key on the setup screen to get AI recommendations.</div>';
+
+  } catch(e) {
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'block';
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+function extractUsername(url) {
+  try {
+    const u = new URL(url.startsWith('http') ? url : 'https://' + url);
+    if (u.hostname.includes('gumroad.com') && u.hostname !== 'gumroad.com') {
+      return u.hostname.split('.')[0];
+    }
+    const parts = u.pathname.split('/').filter(Boolean);
+    if (parts.length) return parts[0];
+  } catch(e) {}
+  const m = url.match(/(?:https?:\/\/)?(?:([^.]+)\.gumroad\.com|gumroad\.com\/([^/?]+))/);
+  return m ? (m[1] || m[2]) : null;
+}
+
+async function fetchCompetitorProducts(username) {
+  // Use Gumroad's public discover endpoint
+  try {
+    const url = `https://gumroad.com/${username}`;
+    // Try via public API - fetch their profile page and parse product data
+    const apiUrl = `https://api.gumroad.com/v2/users/${username}/products`;
+    const r = await fetch(`${apiUrl}?access_token=${encodeURIComponent(myToken)}`);
+    const d = await r.json();
+    if (d.success && d.products) return d.products;
+  } catch(e) {}
+
+  // Fallback: search Gumroad discover
+  try {
+    const r = await fetch(`https://api.gumroad.com/v2/products?access_token=${encodeURIComponent(myToken)}&user_id=${username}`);
+    const d = await r.json();
+    if (d.success) return d.products || [];
+  } catch(e) {}
+
+  return [];
+}
+
+// ── RENDER ────────────────────────────────────────────
+function renderResults(username) {
+  // VS Header
+  document.getElementById('myName').textContent = 'Your Store';
+  document.getElementById('themName').textContent = username;
+  document.getElementById('myBadge').textContent = myProducts.length + ' products';
+  document.getElementById('themBadge').textContent = themProducts.length + ' products';
+
+  // Stats
+  const myPaid = myProducts.filter(p => p.price > 0);
+  const themPaid = themProducts.filter(p => p.price > 0);
+  const myFree = myProducts.filter(p => !p.price || p.price === 0);
+  const themFree = themProducts.filter(p => !p.price || p.price === 0);
+  const myAvg = myPaid.length ? myPaid.reduce((a,p) => a + p.price, 0) / myPaid.length / 100 : 0;
+  const themAvg = themPaid.length ? themPaid.reduce((a,p) => a + p.price, 0) / themPaid.length / 100 : 0;
+  const maxCount = Math.max(myProducts.length, themProducts.length, 1);
+  const maxPrice = Math.max(myAvg, themAvg, 1);
+
+  document.getElementById('myProductCount').textContent = myProducts.length;
+  document.getElementById('themProductCount').textContent = themProducts.length;
+  document.getElementById('myFreeCount').textContent = myFree.length + ' free · ' + myPaid.length + ' paid';
+  document.getElementById('themFreeCount').textContent = themFree.length + ' free · ' + themPaid.length + ' paid';
+  document.getElementById('myAvgPrice').textContent = myAvg ? '$' + myAvg.toFixed(0) : 'Free';
+  document.getElementById('themAvgPrice').textContent = themAvg ? '$' + themAvg.toFixed(0) : 'Free';
+  document.getElementById('myPaidCount').textContent = myPaid.length + ' paid products';
+  document.getElementById('themPaidCount').textContent = themPaid.length + ' paid products';
+
+  document.getElementById('productBar').innerHTML = makeBar('Products', myProducts.length, themProducts.length, maxCount);
+  document.getElementById('priceBar').innerHTML = makeBar('Avg Price', myAvg, themAvg, maxPrice, '$');
+
+  // Tags
+  const myTags = new Set(myProducts.flatMap(p => p.tags || []));
+  const themTags = new Set(themProducts.flatMap(p => p.tags || []));
+  const shared = [...myTags].filter(t => themTags.has(t));
+  const myOnly = [...myTags].filter(t => !themTags.has(t));
+  const themOnly = [...themTags].filter(t => !myTags.has(t));
+
+  document.getElementById('sharedTags').innerHTML = shared.length
+    ? shared.map(t => `<span class="tag-chip shared">${t}</span>`).join('')
+    : '<span style="color:var(--muted);font-size:11px">No shared tags</span>';
+
+  document.getElementById('myUniqueTags').innerHTML = myOnly.slice(0,20).map(t => `<span class="tag-chip you">${t}</span>`).join('') || '<span style="color:var(--muted);font-size:11px">None</span>';
+
+  document.getElementById('themUniqueTags').innerHTML = themOnly.slice(0,20).map(t => `<span class="tag-chip them">${t}</span>`).join('') || '<span style="color:var(--muted);font-size:11px">None</span>';
+
+  // Gap analysis — their products with no similar match in yours
+  const myNames = myProducts.map(p => p.name.toLowerCase());
+  const gaps = themProducts.filter(tp => {
+    const tWords = tp.name.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+    return !myNames.some(mn => tWords.some(w => mn.includes(w)));
+  });
+
+  document.getElementById('gapCount').textContent = gaps.length + ' gaps found';
+  document.getElementById('gapTable').innerHTML = gaps.slice(0,15).map((p, i) => {
+    const price = p.price ? `$${(p.price/100).toFixed(2)}` : 'Free';
+    const opp = p.price > 0 ? '<span class="badge badge-gap">💰 Revenue gap</span>' : '<span class="badge badge-win">🎯 Audience gap</span>';
+    return `<tr>
+      <td style="color:var(--muted);font-size:10px">${i+1}</td>
+      <td><div class="product-row-name">${p.name}</div></td>
+      <td><span class="badge ${p.price ? 'badge-paid' : 'badge-free'}">${price}</span></td>
+      <td>${opp}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px">No significant gaps found — you have great coverage!</td></tr>';
+
+  // Their products table
+  document.getElementById('themProdCount').textContent = themProducts.length + ' products';
+  document.getElementById('themTable').innerHTML = themProducts.map((p, i) => {
+    const price = p.price ? `$${(p.price/100).toFixed(2)}` : 'Free';
+    const tags = (p.tags||[]).slice(0,3).map(t => `<span class="tag-chip">${t}</span>`).join('');
+    return `<tr>
+      <td style="color:var(--muted);font-size:10px">${i+1}</td>
+      <td><div class="product-row-name">${p.name}</div></td>
+      <td><span class="badge ${p.price ? 'badge-paid' : 'badge-free'}">${price}</span></td>
+      <td><div style="display:flex;flex-wrap:wrap;gap:4px">${tags || '—'}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function makeBar(label, myVal, themVal, max, prefix='') {
+  const myPct = Math.round((myVal/max)*100);
+  const themPct = Math.round((themVal/max)*100);
+  return `
+    <div class="bar-compare">
+      <div class="bar-label">
+        <span style="color:var(--you)">You: ${prefix}${typeof myVal === 'number' ? myVal.toFixed(myVal%1?1:0) : myVal}</span>
+        <span style="color:var(--them)">Them: ${prefix}${typeof themVal === 'number' ? themVal.toFixed(themVal%1?1:0) : themVal}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill-you" style="width:${myPct}%"></div></div>
+      <div class="bar-track"><div class="bar-fill-them" style="width:${themPct}%"></div></div>
+    </div>`;
+}
+
+// ── AI INSIGHTS ───────────────────────────────────────
+async function generateAIInsights() {
+  const myPaid = myProducts.filter(p => p.price > 0);
+  const themPaid = themProducts.filter(p => p.price > 0);
+  const myTags = [...new Set(myProducts.flatMap(p => p.tags||[]))].slice(0,15);
+  const themTags = [...new Set(themProducts.flatMap(p => p.tags||[]))].slice(0,15);
+  const themOnly = themTags.filter(t => !myTags.includes(t));
+  const myNames = myProducts.map(p => p.name).slice(0,10).join(', ');
+  const themNames = themProducts.map(p => p.name).slice(0,10).join(', ');
+
+  const prompt = `You are a Gumroad business strategist. Analyze this competitor comparison and give exactly 5 specific, actionable recommendations.
+
+MY STORE:
+- ${myProducts.length} products (${myPaid.length} paid, ${myProducts.length - myPaid.length} free)
+- Avg paid price: $${myPaid.length ? (myPaid.reduce((a,p)=>a+p.price,0)/myPaid.length/100).toFixed(2) : 0}
+- Top tags: ${myTags.slice(0,8).join(', ')}
+- Sample products: ${myNames}
+
+COMPETITOR:
+- ${themProducts.length} products (${themPaid.length} paid, ${themProducts.length - themPaid.length} free)
+- Avg paid price: $${themPaid.length ? (themPaid.reduce((a,p)=>a+p.price,0)/themPaid.length/100).toFixed(2) : 0}
+- Their unique tags: ${themOnly.slice(0,8).join(', ')}
+- Sample products: ${themNames}
+
+Give exactly 5 action points. Format each as:
+[NUMBER]. [BOLD TITLE]: [specific actionable advice in 2-3 sentences]
+
+Be specific, strategic and direct. Focus on revenue opportunities and competitive advantages.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+
+    // Parse into action points
+    const points = text.split(/\n/).filter(l => l.match(/^\d+\./));
+    if (points.length) {
+      document.getElementById('aiOutput').innerHTML = points.map((p, i) => {
+        const clean = p.replace(/^\d+\.\s*/, '');
+        const bold = clean.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:var(--accent2)">$1</strong>');
+        return `<div class="action-point"><div class="ap-num">${i+1}</div><div>${bold}</div></div>`;
+      }).join('');
+    } else {
+      document.getElementById('aiOutput').innerHTML = `<div class="ai-content">${text}</div>`;
+    }
+  } catch(e) {
+    document.getElementById('aiOutput').innerHTML = '<div style="color:var(--muted);font-size:12px">AI insights unavailable — check your Anthropic API key.</div>';
+  }
+}
+
+function setLoading(title, pct) {
+  document.getElementById('loadingTitle').textContent = title;
+  document.getElementById('loadingBar').style.width = pct + '%';
+}
+
+function resetAll() {
+  myProducts = []; themProducts = [];
+  document.getElementById('setup-screen').style.display = 'block';
+  document.getElementById('results-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'none';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
