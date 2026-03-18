@@ -150,7 +150,7 @@ async function loadScheduler() {
     document.getElementById('hStatus').textContent = `${schedProducts.length} products`;
 
     const sel = document.getElementById('schedProductSelect');
-    sel.innerHTML = schedProducts.map(p => `<option value="${p.id}">${p.name.substring(0,50)} (${p.published?'Published':'Unpublished'})</option>`).join('');
+    sel.innerHTML = schedProducts.map(p => `<option value="${p.id}">${escapeHTML(p.name.substring(0,50))} (${p.published?'Published':'Unpublished'})</option>`).join('');
 
     renderSchedProducts(schedProducts);
     renderSchedules();
@@ -211,7 +211,7 @@ function renderSchedules() {
     return `
     <div class="schedule-item ${s.fired?'fired':isPast?'past':'active'}">
       <div>
-        <div class="sched-name">${s.productName.substring(0,45)}${s.productName.length>45?'...':''}</div>
+        <div class="sched-name">${escapeHTML(s.productName.substring(0,45))}${s.productName.length>45?'...':''}</div>
         <div class="sched-time">${s.action === 'publish' ? '✅ Publish' : '⬇️ Unpublish'} at ${dt.toLocaleString()}</div>
         ${countdown ? `<div class="sched-countdown">${countdown}</div>` : ''}
         <span class="sched-status ${s.fired?'published':isPast?'past':'scheduled'}">${s.fired?'✓ Executed':isPast?'Missed':'⏰ Scheduled'}</span>

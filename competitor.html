@@ -393,7 +393,7 @@ async function analyze() {
 
   try {
     setLoading('Fetching your products...', 20);
-    const myRes = await fetch(`https://api.gumroad.com/v2/products?access_token=${encodeURIComponent(myToken)}`);
+    const myRes = await fetch(`https://api.gumroad.com/v2/products?access_token=${encodeURIComponent(GR.getGumroad())}`);
     const myData = await myRes.json();
     if (!myData.success) throw new Error('Failed to load your products');
     myProducts = myData.products;

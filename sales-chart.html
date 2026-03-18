@@ -119,8 +119,9 @@ async function loadSalesData() {
   try {
     let sales = [], pageKey = null;
     do {
-      let url = `https://api.gumroad.com/v2/sales?access_token=${encodeURIComponent(token)}&after=${afterStr}&page_key=${pageKey||''}`;
-      const r = await fetch(url);
+      const params = new URLSearchParams({access_token: token, after: afterStr});
+      if (pageKey) params.append('page_key', pageKey);
+      const r = await fetch('https://api.gumroad.com/v2/sales?' + params.toString());
       const d = await r.json();
       if (!d.success) break;
       sales = sales.concat(d.sales || []);

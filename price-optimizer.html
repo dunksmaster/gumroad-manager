@@ -86,7 +86,7 @@ async function runOptimizer() {
     for (let i = 0; i < freeProd.length; i++) {
       const p = freeProd[i];
       const el = document.getElementById(`rec-${i}`);
-      el.innerHTML = `<div><div class="product-name">${p.name}</div><div class="product-meta">${p.sales_count} downloads</div></div><div><span class="spinner"></span></div>`;
+      el.innerHTML = `<div><div class="product-name">${escapeHTML(p.name)}</div><div class="product-meta">${parseInt(p.sales_count||0)} downloads</div></div><div><span class="spinner"></span></div>`;
       let rec = { action: 'keep', price: 0, reason: 'Low demand or generic content.' };
       if (antKey) {
         try {
@@ -108,7 +108,7 @@ Reply ONLY as JSON: {"action":"convert_to_paid|raise_awareness|keep_free","sugge
       }
       const badgeClass = rec.action === 'convert_to_paid' ? 'rec-convert' : rec.action === 'raise_awareness' ? 'rec-raise' : 'rec-keep';
       const badgeText = rec.action === 'convert_to_paid' ? `💰 Convert → $${rec.suggested_price_usd}` : rec.action === 'raise_awareness' ? '📈 Improve & Keep Free' : '✓ Keep Free';
-      el.innerHTML = `<div><div class="product-name">${p.name}</div><div class="product-meta">${p.sales_count} downloads · Free</div><div class="ai-reason">${rec.reason||''}</div></div><div><span class="recommend-badge ${badgeClass}">${badgeText}</span></div>`;
+      el.innerHTML = `<div><div class="product-name">${escapeHTML(p.name)}</div><div class="product-meta">${parseInt(p.sales_count||0)} downloads · Free</div><div class="ai-reason">${escapeHTML(rec.reason||'')}</div><div><span class="recommend-badge ${badgeClass}">${badgeText}</span></div>`;
       done++;
     }
     document.getElementById('hStatus').textContent = `${done} products analyzed`;

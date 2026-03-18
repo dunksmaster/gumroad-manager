@@ -9,6 +9,18 @@ const GR = {
   hasTokens: () => !!sessionStorage.getItem('gr_token'),
 };
 
+
+// ── XSS PROTECTION ───────────────────────────────────
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ── SHARED NAV BAR ────────────────────────────────────
 function injectNav(activePage) {
   const pages = [
