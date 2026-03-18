@@ -200,12 +200,30 @@
         </div>
         <div class="form-group">
           <label class="form-label">Filter Products</label>
-          <select class="form-select" id="filterType">
+          <select class="form-select" id="filterType" onchange="toggleUrlFilter(this.value)">
             <option value="all">All products</option>
             <option value="published">Published only</option>
             <option value="paid">Paid only</option>
             <option value="free">Free only</option>
+            <option value="url">Specific product by URL</option>
           </select>
+        </div>
+      </div>
+
+      <div id="urlFilterWrap" style="display:none;margin-bottom:20px;">
+        <div class="form-group">
+          <label class="form-label">Paste Gumroad Product URL</label>
+          <div style="display:flex;gap:10px;align-items:center">
+            <input class="form-input" id="productUrlInput" placeholder="e.g. https://duacrypto.gumroad.com/l/Affiliate?layout=profile" style="flex:1" />
+            <button class="btn btn-outline btn-sm" onclick="previewProductFromUrl()">&#128269; Preview</button>
+          </div>
+          <div id="urlPreview" style="display:none;margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;">
+            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Product Found</div>
+            <div id="urlPreviewName" style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;margin-bottom:4px;"></div>
+            <div id="urlPreviewMeta" style="font-size:11px;color:var(--muted);margin-bottom:8px;"></div>
+            <div id="urlPreviewTags" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:8px;">Works with any Gumroad URL: gumroad.com/l/xxx or yourname.gumroad.com/l/xxx</div>
         </div>
       </div>
 
@@ -411,6 +429,15 @@ async function start() {
     if (filter === 'paid') prods = prods.filter(p => p.price > 0);
     if (filter === 'free') prods = prods.filter(p => !p.price || p.price === 0);
     if (filter === 'published') prods = prods.filter(p => p.published);
+    if (filter === 'url') {
+      if (!window._urlFilterProduct) {
+        showToast('Please preview a product URL first', 'error');
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('startBtn').textContent = '🚀 Load Products';
+        return;
+      }
+      prods = [window._urlFilterProduct];
+    }
 
     products = prods;
     document.getElementById('headerStatus').textContent = `Connected — ${products.length} products`;
@@ -657,6 +684,76 @@ function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = `toast ${type} show`;
   setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── URL FILTER ────────────────────────────────────────
+function toggleUrlFilter(val) {
+  document.getElementById('urlFilterWrap').style.display = val === 'url' ? 'block' : 'none';
+  if (val !== 'url') {
+    document.getElementById('urlPreview').style.display = 'none';
+  }
+}
+
+function extractPermalinkFromUrl(url) {
+  // Handles: gumroad.com/l/xxx, name.gumroad.com/l/xxx, with query params
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split('/').filter(Boolean);
+    const lIdx = parts.indexOf('l');
+    if (lIdx !== -1 && parts[lIdx + 1]) return parts[lIdx + 1];
+  } catch(e) {}
+  // fallback regex
+  const m = url.match(/\/l\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : null;
+}
+
+async function previewProductFromUrl() {
+  const url = document.getElementById('productUrlInput').value.trim();
+  if (!url) return showToast('Paste a Gumroad product URL first', 'error');
+
+  const permalink = extractPermalinkFromUrl(url);
+  if (!permalink) return showToast('Could not extract product ID from URL', 'error');
+
+  const t = document.getElementById('gumroadToken').value.trim();
+  if (!t) return showToast('Enter your Gumroad token first', 'error');
+  TOKEN = t;
+
+  showToast('Looking up product...', 'success');
+
+  try {
+    // Load all products and find by permalink
+    const res = await gumroadFetch('/v2/products');
+    if (!res.success) return showToast('Failed to load products', 'error');
+
+    const match = res.products.find(p =>
+      p.short_url?.includes(permalink) ||
+      p.custom_permalink === permalink ||
+      (p.url || '').includes(permalink)
+    );
+
+    if (!match) return showToast(`Product "${permalink}" not found in your account`, 'error');
+
+    // Store as single-product filter
+    products = [match];
+    window._urlFilterProduct = match;
+
+    const preview = document.getElementById('urlPreview');
+    document.getElementById('urlPreviewName').textContent = match.name;
+    document.getElementById('urlPreviewMeta').textContent =
+      (match.price ? '$' + (match.price/100).toFixed(2) : 'Free') +
+      ' · ' + (match.published ? 'Published' : 'Unpublished') +
+      ' · ' + (match.sales_count || 0) + ' sales';
+
+    const tagsWrap = document.getElementById('urlPreviewTags');
+    tagsWrap.innerHTML = (match.tags||[]).length
+      ? match.tags.map(t => `<span class="tag-chip">${t}</span>`).join('')
+      : '<span style="font-size:10px;color:var(--muted)">No tags yet</span>';
+
+    preview.style.display = 'block';
+    showToast('Product found! ✅', 'success');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
 }
 
 // Init
