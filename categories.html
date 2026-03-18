@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gumroad Category Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --border: #2a2a3a;
+    --accent: #ff6b6b;
+    --accent2: #4ecdc4;
+    --accent3: #ffe66d;
+    --purple: #667eea;
+    --text: #f0f0f5;
+    --muted: #6b6b8a;
+    --success: #51cf66;
+    --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(78,205,196,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(78,205,196,0.03) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border); padding: 18px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; }
+  .logo span { color: var(--accent2); }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px; position: relative; z-index: 1; }
+
+  /* SETUP */
+  .setup-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px; margin-bottom: 20px;
+  }
+  .setup-card h2 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+  .setup-card p { color: var(--muted); font-size: 12px; margin-bottom: 24px; line-height: 1.6; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+  .form-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .form-input, .form-select {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 11px 14px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 12px; outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent2); }
+  .form-select option { background: var(--surface); }
+
+  /* MODE TABS */
+  .mode-tabs { display: flex; gap: 10px; margin-bottom: 24px; }
+  .mode-tab {
+    flex: 1; padding: 16px; border-radius: 12px; cursor: pointer;
+    border: 2px solid var(--border); background: var(--surface2);
+    text-align: center; transition: all 0.2s;
+  }
+  .mode-tab:hover { border-color: var(--accent2); }
+  .mode-tab.active { border-color: var(--accent2); background: rgba(78,205,196,0.08); }
+  .mode-tab .tab-icon { font-size: 28px; margin-bottom: 8px; }
+  .mode-tab .tab-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .mode-tab .tab-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* CATEGORIES */
+  .categories-wrap { margin-bottom: 20px; }
+  .categories-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: block; }
+  .categories-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cat-pill {
+    padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--surface2); cursor: pointer; font-size: 12px;
+    transition: all 0.15s; user-select: none;
+  }
+  .cat-pill:hover { border-color: var(--accent2); color: var(--accent2); }
+  .cat-pill.selected { border-color: var(--accent2); background: rgba(78,205,196,0.12); color: var(--accent2); }
+  .cat-pill .cat-color { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+
+  /* BTN */
+  .btn {
+    background: var(--accent2); color: #0a0a0f; border: none; border-radius: 10px;
+    padding: 13px 24px; font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 13px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px;
+  }
+  .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent2); color: var(--accent2); background: transparent; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-purple { background: var(--purple); color: white; }
+  .btn-sm { padding: 7px 14px; font-size: 11px; border-radius: 7px; }
+
+  /* MANUAL TABLE */
+  #manual-screen, #ai-screen, #result-screen { display: none; }
+
+  .screen-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+  }
+  .screen-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; }
+
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
+  .table-header { padding: 14px 20px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .table-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 11px 16px; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface2); }
+  td { padding: 11px 16px; font-size: 12px; border-bottom: 1px solid rgba(42,42,58,0.4); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(28,28,39,0.6); }
+
+  .product-name-cell { max-width: 280px; }
+  .product-name-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--text); }
+  .product-price-text { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .cat-select {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 11px; outline: none; cursor: pointer; width: 100%; max-width: 200px;
+  }
+  .cat-select:focus { border-color: var(--accent2); }
+
+  .current-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag-chip {
+    font-size: 10px; padding: 2px 8px; border-radius: 12px;
+    background: rgba(42,42,58,0.8); color: var(--muted); border: 1px solid var(--border);
+  }
+
+  /* AI PROGRESS */
+  .progress-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 20px; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .progress-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+  .progress-bar-wrap { background: var(--bg); border-radius: 20px; height: 6px; overflow: hidden; margin-bottom: 8px; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--purple)); border-radius: 20px; transition: width 0.4s; width: 0%; }
+  .progress-sub { font-size: 11px; color: var(--muted); }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+  .stat-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+  .stat-value.green { color: var(--success); }
+  .stat-value.teal { color: var(--accent2); }
+  .stat-value.yellow { color: var(--accent3); }
+  .stat-value.red { color: var(--danger); }
+
+  .log-body { height: 260px; overflow-y: auto; }
+  .log-entry { padding: 9px 20px; font-size: 11px; border-bottom: 1px solid rgba(42,42,58,0.3); display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center; }
+  .log-num { color: var(--muted); font-size: 10px; }
+  .log-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log-cat { font-size: 10px; padding: 2px 8px; border-radius: 12px; white-space: nowrap; }
+
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 12px; }
+  .badge-done { background: rgba(81,207,102,0.12); color: var(--success); }
+  .badge-pending { background: rgba(102,126,234,0.12); color: var(--purple); }
+  .badge-error { background: rgba(255,107,107,0.12); color: var(--danger); }
+
+  .spinner { width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent2); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 12px; z-index: 9999; transform: translateY(80px); opacity: 0; transition: all 0.3s; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--success); }
+  .toast.error { border-color: var(--danger); }
+
+  .search-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; outline: none; width: 220px; }
+  .search-bar:focus { border-color: var(--accent2); }
+
+  .apply-all-row { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .apply-all-row label { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Gumroad <span>Category Manager</span></div>
+  <div style="font-size:11px;color:var(--muted)" id="headerStatus">Not connected</div>
+</header>
+
+<div class="container">
+
+  <!-- SETUP SCREEN -->
+  <div id="setup-screen">
+    <div class="setup-card">
+      <h2>🏷️ Mass Category & Tag Manager</h2>
+      <p>Assign categories to all your products at once. Use AI to auto-detect the best category per product, or assign them manually yourself.</p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Gumroad API Token</label>
+          <input class="form-input" id="gumroadToken" type="password" placeholder="Your Gumroad access token..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Filter Products</label>
+          <select class="form-select" id="filterType">
+            <option value="all">All products</option>
+            <option value="published">Published only</option>
+            <option value="paid">Paid only</option>
+            <option value="free">Free only</option>
+          </select>
+        </div>
+      </div>
+
+      <span class="categories-label">Your Categories (click to select which ones to use)</span>
+      <div class="categories-grid" id="categoriesPicker">
+        <!-- filled by JS -->
+      </div>
+
+      <div style="margin-top:20px;margin-bottom:24px">
+        <div class="form-group">
+          <label class="form-label">Add Custom Category</label>
+          <div style="display:flex;gap:10px">
+            <input class="form-input" id="customCatInput" placeholder="e.g. Templates, Ebooks..." style="max-width:300px" onkeydown="if(event.key==='Enter')addCustomCat()" />
+            <button class="btn btn-outline btn-sm" onclick="addCustomCat()">+ Add</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:24px">
+        <span class="categories-label">Choose Mode</span>
+        <div class="mode-tabs">
+          <div class="mode-tab active" id="tab-ai" onclick="selectMode('ai')">
+            <div class="tab-icon">🤖</div>
+            <div class="tab-title">AI Auto-Assign</div>
+            <div class="tab-desc">Claude reads each product and picks the best category automatically</div>
+          </div>
+          <div class="mode-tab" id="tab-manual" onclick="selectMode('manual')">
+            <div class="tab-icon">✋</div>
+            <div class="tab-title">Manual Assign</div>
+            <div class="tab-desc">You pick the category for each product from a dropdown</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn" id="startBtn" onclick="start()">🚀 Load Products</button>
+      <div style="font-size:10px;color:var(--muted);margin-top:10px">🔒 Token stays in your browser only</div>
+    </div>
+  </div>
+
+  <!-- MANUAL SCREEN -->
+  <div id="manual-screen">
+    <div class="screen-header">
+      <div class="screen-title">✋ Manual Category Assignment</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input class="search-bar" placeholder="🔍 Search..." oninput="filterTable(this.value)" />
+        <button class="btn btn-sm" onclick="applyAllManual()">💾 Apply All to Gumroad</button>
+        <button class="btn btn-outline btn-sm" onclick="resetAll()">↩ Back</button>
+      </div>
+    </div>
+
+    <div class="apply-all-row">
+      <label>Apply same category to ALL products:</label>
+      <select class="cat-select" id="bulkCatSelect" style="max-width:220px"></select>
+      <button class="btn btn-outline btn-sm" onclick="applyBulkCategory()">Apply to All</button>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">Products</div>
+        <div style="font-size:11px;color:var(--muted)" id="manualCount">0 products</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product</th>
+            <th>Current Tags</th>
+            <th>Assign Category</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="manualBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- AI SCREEN -->
+  <div id="ai-screen">
+    <div class="screen-header">
+      <div class="screen-title">🤖 AI Auto-Assign</div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline btn-sm" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+        <button class="btn btn-danger btn-sm" onclick="stopAI()">⏹ Stop</button>
+        <button class="btn btn-outline btn-sm" onclick="resetAll()">↩ Back</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value teal" id="aiStatTotal">0</div></div>
+      <div class="stat-card"><div class="stat-label">Done</div><div class="stat-value green" id="aiStatDone">0</div></div>
+      <div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value red" id="aiStatFailed">0</div></div>
+      <div class="stat-card"><div class="stat-label">Remaining</div><div class="stat-value yellow" id="aiStatLeft">0</div></div>
+    </div>
+
+    <div class="progress-card">
+      <div class="progress-header">
+        <div class="progress-title" id="aiProgressTitle">Starting...</div>
+        <div style="font-size:12px;color:var(--muted)" id="aiProgressPct">0%</div>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="aiProgressBar"></div></div>
+      <div class="progress-sub" id="aiProgressSub">Preparing...</div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">📋 Processing Log</div>
+        <div style="font-size:11px;color:var(--muted)" id="aiLogCount">0 entries</div>
+      </div>
+      <div class="log-body" id="aiLogBody"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────
+let TOKEN = '';
+let products = [];
+let mode = 'ai';
+let isPaused = false;
+let isStopped = false;
+let manualSelections = {};
+
+const DEFAULT_CATS = [
+  { name: 'Notion Templates', color: '#4ecdc4', tags: ['notion', 'template', 'productivity'] },
+  { name: 'AI & ChatGPT', color: '#667eea', tags: ['ai', 'chatgpt', 'prompts'] },
+  { name: 'Crypto & Finance', color: '#ffe66d', tags: ['crypto', 'bitcoin', 'finance'] },
+  { name: 'MidJourney & AI Art', color: '#ff6b6b', tags: ['midjourney', 'ai-art', 'prompts'] },
+  { name: 'Productivity', color: '#51cf66', tags: ['productivity', 'tools', 'workflow'] },
+  { name: 'Print on Demand', color: '#f39c12', tags: ['print-on-demand', 'design', 'merch'] },
+  { name: 'Marketing & Growth', color: '#e056fd', tags: ['marketing', 'growth', 'social-media'] },
+];
+
+let categories = [...DEFAULT_CATS];
+let selectedCats = new Set(DEFAULT_CATS.map(c => c.name));
+
+// ── INIT ──────────────────────────────────────────────
+function initCategoryPicker() {
+  const grid = document.getElementById('categoriesPicker');
+  grid.innerHTML = categories.map(c => `
+    <div class="cat-pill selected" id="catpill-${slug(c.name)}" onclick="toggleCat('${c.name}')">
+      <span class="cat-color" style="background:${c.color}"></span>${c.name}
+    </div>
+  `).join('');
+  refreshBulkSelect();
+}
+
+function slug(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
+
+function toggleCat(name) {
+  if (selectedCats.has(name)) selectedCats.delete(name);
+  else selectedCats.add(name);
+  const pill = document.getElementById(`catpill-${slug(name)}`);
+  if (pill) pill.classList.toggle('selected', selectedCats.has(name));
+}
+
+function addCustomCat() {
+  const input = document.getElementById('customCatInput');
+  const name = input.value.trim();
+  if (!name) return;
+  if (categories.find(c => c.name === name)) return showToast('Category already exists', 'error');
+  const colors = ['#4ecdc4','#667eea','#ff6b6b','#51cf66','#ffe66d','#f39c12','#e056fd'];
+  const color = colors[categories.length % colors.length];
+  categories.push({ name, color, tags: [name.toLowerCase().replace(/\s+/g,'-')] });
+  selectedCats.add(name);
+  input.value = '';
+  initCategoryPicker();
+  showToast(`Added: ${name}`, 'success');
+}
+
+function selectMode(m) {
+  mode = m;
+  document.getElementById('tab-ai').classList.toggle('active', m === 'ai');
+  document.getElementById('tab-manual').classList.toggle('active', m === 'manual');
+}
+
+function refreshBulkSelect() {
+  const sel = document.getElementById('bulkCatSelect');
+  if (!sel) return;
+  const activeCats = categories.filter(c => selectedCats.has(c.name));
+  sel.innerHTML = `<option value="">-- Select category --</option>` +
+    activeCats.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+}
+
+// ── START ─────────────────────────────────────────────
+async function start() {
+  const t = document.getElementById('gumroadToken').value.trim();
+  if (!t) return showToast('Enter your Gumroad token', 'error');
+  if (selectedCats.size === 0) return showToast('Select at least one category', 'error');
+
+  TOKEN = t;
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('startBtn').textContent = 'Loading...';
+
+  try {
+    const res = await gumroadFetch('/v2/products');
+    if (!res.success) { showToast('Failed to load products', 'error'); return; }
+
+    let prods = res.products;
+    const filter = document.getElementById('filterType').value;
+    if (filter === 'paid') prods = prods.filter(p => p.price > 0);
+    if (filter === 'free') prods = prods.filter(p => !p.price || p.price === 0);
+    if (filter === 'published') prods = prods.filter(p => p.published);
+
+    products = prods;
+    document.getElementById('headerStatus').textContent = `Connected — ${products.length} products`;
+    document.getElementById('setup-screen').style.display = 'none';
+
+    if (mode === 'manual') {
+      document.getElementById('manual-screen').style.display = 'block';
+      buildManualTable();
+    } else {
+      document.getElementById('ai-screen').style.display = 'block';
+      document.getElementById('aiStatTotal').textContent = products.length;
+      document.getElementById('aiStatLeft').textContent = products.length;
+      runAIAssign();
+    }
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('startBtn').textContent = '🚀 Load Products';
+}
+
+// ── MANUAL MODE ───────────────────────────────────────
+function buildManualTable() {
+  const tbody = document.getElementById('manualBody');
+  const activeCats = categories.filter(c => selectedCats.has(c.name));
+  const catOptions = activeCats.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+
+  tbody.innerHTML = products.map((p, i) => {
+    const price = p.price ? `$${(p.price/100).toFixed(2)}` : 'Free';
+    const tags = (p.tags||[]).slice(0,3).map(t => `<span class="tag-chip">${t}</span>`).join('');
+    return `
+    <tr id="mrow-${i}">
+      <td style="color:var(--muted);font-size:10px">${i+1}</td>
+      <td class="product-name-cell">
+        <div class="product-name-text">${p.name}</div>
+        <div class="product-price-text">${price}</div>
+      </td>
+      <td><div class="current-tags">${tags || '<span style="color:var(--muted);font-size:10px">none</span>'}</div></td>
+      <td>
+        <select class="cat-select" id="catsel-${i}" onchange="manualSelections[${i}]=this.value">
+          <option value="">-- Pick category --</option>
+          ${catOptions}
+        </select>
+      </td>
+      <td><span class="badge badge-pending" id="mstatus-${i}">pending</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('manualCount').textContent = products.length + ' products';
+  refreshBulkSelect();
+}
+
+function filterTable(q) {
+  const rows = document.querySelectorAll('#manualBody tr');
+  rows.forEach(row => {
+    const name = row.querySelector('.product-name-text')?.textContent || '';
+    row.style.display = name.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function applyBulkCategory() {
+  const cat = document.getElementById('bulkCatSelect').value;
+  if (!cat) return showToast('Select a category first', 'error');
+  products.forEach((p, i) => {
+    manualSelections[i] = cat;
+    const sel = document.getElementById(`catsel-${i}`);
+    if (sel) sel.value = cat;
+  });
+  showToast(`Applied "${cat}" to all ${products.length} products`, 'success');
+}
+
+async function applyAllManual() {
+  const toUpdate = Object.entries(manualSelections).filter(([,v]) => v);
+  if (!toUpdate.length) return showToast('No categories selected', 'error');
+
+  showToast(`Updating ${toUpdate.length} products...`, 'success');
+
+  for (const [idx, catName] of toUpdate) {
+    const p = products[parseInt(idx)];
+    const cat = categories.find(c => c.name === catName);
+    if (!p || !cat) continue;
+
+    const newTags = [...new Set([...(p.tags||[]), ...cat.tags, catName.toLowerCase().replace(/\s+/g,'-')])];
+
+    try {
+      const res = await gumroadFetch(`/v2/products/${p.id}`, 'PUT', { tags: newTags.join(',') });
+      const statusEl = document.getElementById(`mstatus-${idx}`);
+      if (res.success) {
+        if (statusEl) { statusEl.textContent = '✓ done'; statusEl.className = 'badge badge-done'; }
+      } else {
+        if (statusEl) { statusEl.textContent = '✗ error'; statusEl.className = 'badge badge-error'; }
+      }
+    } catch(e) {
+      const statusEl = document.getElementById(`mstatus-${idx}`);
+      if (statusEl) { statusEl.textContent = '✗ error'; statusEl.className = 'badge badge-error'; }
+    }
+    await sleep(400);
+  }
+  showToast('✅ All done!', 'success');
+}
+
+// ── AI MODE ───────────────────────────────────────────
+async function runAIAssign() {
+  const activeCats = categories.filter(c => selectedCats.has(c.name)).map(c => c.name);
+
+  for (let i = 0; i < products.length; i++) {
+    if (isStopped) { addAILog(null, '⏹ Stopped', '', ''); break; }
+    while (isPaused) await sleep(500);
+
+    const p = products[i];
+    const pct = Math.round((i / products.length) * 100);
+    document.getElementById('aiProgressBar').style.width = pct + '%';
+    document.getElementById('aiProgressPct').textContent = pct + '%';
+    document.getElementById('aiProgressTitle').textContent = `Processing ${i+1} of ${products.length}`;
+    document.getElementById('aiProgressSub').textContent = p.name;
+    document.getElementById('aiStatLeft').textContent = products.length - i;
+
+    addAILog(i+1, p.name, '', 'pending');
+
+    try {
+      const category = await aiPickCategory(p, activeCats);
+      const cat = categories.find(c => c.name === category);
+      if (!cat) { updateAILog(i+1, 'No match', 'error'); continue; }
+
+      const newTags = [...new Set([...(p.tags||[]), ...cat.tags, category.toLowerCase().replace(/\s+/g,'-')])];
+      const res = await gumroadFetch(`/v2/products/${p.id}`, 'PUT', { tags: newTags.join(',') });
+
+      if (res.success) {
+        updateAILog(i+1, category, 'done');
+        document.getElementById('aiStatDone').textContent = parseInt(document.getElementById('aiStatDone').textContent) + 1;
+      } else {
+        updateAILog(i+1, 'Update failed', 'error');
+        document.getElementById('aiStatFailed').textContent = parseInt(document.getElementById('aiStatFailed').textContent) + 1;
+      }
+    } catch(e) {
+      updateAILog(i+1, e.message, 'error');
+      document.getElementById('aiStatFailed').textContent = parseInt(document.getElementById('aiStatFailed').textContent) + 1;
+    }
+
+    await sleep(900);
+  }
+
+  if (!isStopped) {
+    document.getElementById('aiProgressBar').style.width = '100%';
+    document.getElementById('aiProgressPct').textContent = '100%';
+    document.getElementById('aiProgressTitle').textContent = '✅ All done!';
+    document.getElementById('aiStatLeft').textContent = '0';
+    showToast('✅ All products categorized!', 'success');
+  }
+}
+
+async function aiPickCategory(product, cats) {
+  const prompt = `You are a Gumroad product categorizer. Given a product name and description, pick the SINGLE best category from the list below.
+
+Categories: ${cats.join(', ')}
+
+Product name: ${product.name}
+Description: ${(product.description||'').substring(0, 200)}
+
+Reply with ONLY the category name, exactly as written. Nothing else.`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 50,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const data = await res.json();
+  const reply = (data.content?.[0]?.text || '').trim();
+  return cats.find(c => c.toLowerCase() === reply.toLowerCase()) || cats[0];
+}
+
+function addAILog(num, name, cat, status) {
+  const body = document.getElementById('aiLogBody');
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  div.id = `ailog-${num}`;
+  const cat_entry = categories.find(c => c.name === cat);
+  div.innerHTML = `
+    <div class="log-num">${num||''}</div>
+    <div class="log-name">${name}</div>
+    <div>
+      ${status === 'pending' ? '<span class="spinner"></span>' :
+        status === 'done' ? `<span class="badge badge-done" style="background:${cat_entry?`rgba(${hexToRgb(cat_entry.color)},0.12)`:''}; color:${cat_entry?.color||'var(--success)'}">● ${cat}</span>` :
+        status === 'error' ? `<span class="badge badge-error">${cat}</span>` : ''}
+    </div>
+  `;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  document.getElementById('aiLogCount').textContent = body.children.length + ' entries';
+}
+
+function updateAILog(num, cat, status) {
+  const entry = document.getElementById(`ailog-${num}`);
+  if (!entry) return;
+  const cat_entry = categories.find(c => c.name === cat);
+  const lastDiv = entry.children[2];
+  if (!lastDiv) return;
+  lastDiv.innerHTML = status === 'done'
+    ? `<span class="badge badge-done" style="color:${cat_entry?.color||'var(--success)'}">● ${cat}</span>`
+    : `<span class="badge badge-error">✗ ${cat}</span>`;
+}
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+function togglePause() {
+  isPaused = !isPaused;
+  document.getElementById('pauseBtn').textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+}
+
+function stopAI() { isStopped = true; showToast('Stopped', 'error'); }
+
+// ── API ───────────────────────────────────────────────
+async function gumroadFetch(path, method = 'GET', body = null) {
+  const url = `https://api.gumroad.com${path}`;
+  let params = `access_token=${encodeURIComponent(TOKEN)}`;
+  if (body) Object.entries(body).forEach(([k,v]) => { if (v !== undefined) params += `&${k}=${encodeURIComponent(v)}`; });
+  const opts = { method, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+  if (method === 'GET') { const res = await fetch(`${url}?${params}`, opts); return res.json(); }
+  opts.body = params;
+  const res = await fetch(url, opts);
+  return res.json();
+}
+
+function resetAll() {
+  products = []; manualSelections = {}; isPaused = false; isStopped = false;
+  document.getElementById('setup-screen').style.display = 'block';
+  document.getElementById('manual-screen').style.display = 'none';
+  document.getElementById('ai-screen').style.display = 'none';
+  document.getElementById('aiLogBody').innerHTML = '';
+  document.getElementById('manualBody').innerHTML = '';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Init
+initCategoryPicker();
+</script>
+</body>
+</html>
